@@ -4,6 +4,13 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const marketplaces = [['SHOPEE','Shopee'],['TOKOPEDIA','Tokopedia'],['TIKTOK_SHOP','TikTok Shop'],['LAZADA','Lazada'],['BLIBLI','Blibli'],['OTHER','Other']];
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
+function itemTotal(item) {
+  const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+  const discount = item.discountType === 'PERCENTAGE'
+    ? gross * Number(item.discountValue || 0) / 100
+    : Number(item.discountValue || 0);
+  return Math.max(0, gross - discount);
+}
 
 export default function MarketplaceOrderPage({ onCancel, onCreated }) {
   const [customers, setCustomers] = useState([]); const [products, setProducts] = useState([]);
@@ -29,7 +36,7 @@ export default function MarketplaceOrderPage({ onCancel, onCreated }) {
         <label className="form-field form-field-full"><span>Product *</span><select value={item.productId} onChange={e=>selectProduct(index,e.target.value)} disabled={loading}><option value="">Select product...</option>{products.map(p=><option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}</select></label>
         <label className="form-field"><span>Quantity *</span><input type="number" min="1" step="1" value={item.quantity} onChange={e=>updateItem(index,'quantity',e.target.value)} /></label><label className="form-field"><span>Unit Price *</span><input type="number" min="0" step="1" value={item.unitPrice} onChange={e=>updateItem(index,'unitPrice',e.target.value)} /></label><label className="form-field"><span>Discount Type</span><select value={item.discountType} onChange={e=>updateItem(index,'discountType',e.target.value)}><option value="NOMINAL">Nominal</option><option value="PERCENTAGE">Percentage</option></select></label><label className="form-field"><span>Discount Value</span><input type="number" min="0" step="0.01" value={item.discountValue} onChange={e=>updateItem(index,'discountValue',e.target.value)} /></label>
         <label className="form-field form-field-full"><span>Production Notes</span><textarea rows="2" value={item.productionNotes} onChange={e=>updateItem(index,'productionNotes',e.target.value)} /></label><label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={e=>updateItem(index,'artworkFileUrl',e.target.value)} /></label><label className="form-field"><span>Artwork Drive Link</span><input value={item.artworkDriveUrl} onChange={e=>updateItem(index,'artworkDriveUrl',e.target.value)} /></label><label className="checkbox-field"><input type="checkbox" checked={item.isCustom} onChange={e=>updateItem(index,'isCustom',e.target.checked)} /><span>Custom / Special Request</span></label>
-      </div><div className="item-total"><span>Item Total</span><strong>{money(Math.max(0,Number(item.quantity||0)*Number(item.unitPrice||0)-(item.discountType==='PERCENTAGE'?Number(item.quantity||0)*Number(item.unitPrice||0)*Number(item.discountValue||0)/100:Number(item.discountValue||0)))}</strong></div></div>)}</div></div>
+      </div><div className="item-total"><span>Item Total</span><strong>{money(itemTotal(item))}</strong></div></div>)}</div></div>
       <div className="summary-card"><div><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div><div><span>Discount</span><strong>{money(totals.discount)}</strong></div><div className="grand-total"><span>Grand Total</span><strong>{money(totals.total)}</strong></div></div><div className="form-note">Marketplace payment status: <strong>PAID</strong></div>{error&&<div className="form-error">{error}</div>}<div className="modal-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving||loading}>{saving?'Creating...':'Create WO'}</button></div>
     </form></section>;
 }

@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js';
+import { getPool } from '../../db/pool.js';
 import * as service from './productionEvent.service.js';
 
 function sendError(response, error) {
@@ -8,13 +8,13 @@ function sendError(response, error) {
 
 export async function list(request, response) {
   try {
-    response.json({ data: await service.listProductionEvents(pool, request.params.id) });
+    response.json({ data: await service.listProductionEvents(getPool(), request.params.id) });
   } catch (error) { sendError(response, error); }
 }
 
 export async function create(request, response) {
   try {
-    const data = await service.createProductionEvent(pool, request.params.id, request.body || {});
+    const data = await service.createProductionEvent(getPool(), request.params.id, request.body || {});
     response.status(201).json({ data });
   } catch (error) { sendError(response, error); }
 }

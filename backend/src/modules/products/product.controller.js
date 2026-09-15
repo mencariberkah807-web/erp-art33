@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js';
+import { getPool } from '../../db/pool.js';
 import * as service from './product.service.js';
 
 function sendError(response, error) {
@@ -18,7 +18,7 @@ function sendError(response, error) {
 
 export async function list(request, response) {
   try {
-    const result = await service.listProducts(pool, request.query);
+    const result = await service.listProducts(getPool(), request.query);
     response.json(result);
   } catch (error) {
     sendError(response, error);
@@ -27,7 +27,7 @@ export async function list(request, response) {
 
 export async function getById(request, response) {
   try {
-    const product = await service.getProduct(pool, request.params.id);
+    const product = await service.getProduct(getPool(), request.params.id);
     if (!product) {
       return response.status(404).json({
         error: {
@@ -45,7 +45,7 @@ export async function getById(request, response) {
 
 export async function create(request, response) {
   try {
-    const product = await service.createProduct(pool, request.body ?? {});
+    const product = await service.createProduct(getPool(), request.body ?? {});
     response.status(201).json({ data: product });
   } catch (error) {
     sendError(response, error);
@@ -54,7 +54,7 @@ export async function create(request, response) {
 
 export async function update(request, response) {
   try {
-    const product = await service.updateProduct(pool, request.params.id, request.body ?? {});
+    const product = await service.updateProduct(getPool(), request.params.id, request.body ?? {});
     if (!product) {
       return response.status(404).json({
         error: {

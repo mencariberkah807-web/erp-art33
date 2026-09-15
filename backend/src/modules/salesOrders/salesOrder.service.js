@@ -2,6 +2,8 @@ import * as repository from './salesOrder.repository.js';
 import * as itemService from './salesOrderItems.service.js';
 import * as paymentService from '../payments/payment.service.js';
 import * as workOrderRepository from '../workOrders/workOrder.repository.js';
+import * as workOrderCreationRepository from '../workOrders/workOrderCreation.repository.js';
+import * as workOrderSnapshotRepository from '../workOrders/workOrderSnapshot.repository.js';
 
 const ORDER_TYPES = new Set(['DIRECT', 'MARKETPLACE']);
 const PRIORITIES = new Set(['REGULAR', 'SAME_DAY', 'INSTANT']);
@@ -66,12 +68,26 @@ export async function createSalesOrder(pool, input) {
       });
       for (const item of items) {
         const woNumber = await workOrderRepository.nextWorkOrderNumber(db);
-        workOrders.push(await workOrderRepository.createWorkOrder(db, {
-          woNumber,
-          salesOrderId: salesOrder.id,
-          salesOrderItemId: item.id,
-          status: 'READY_FOR_PRODUCTION',
-        }));
+        const workOrder = await workOrderRepository.createWorkOrder(db, {
+          woNumber, salesOrderId: salesOrder.id, salesOrderItemId: item.id, status: 'READY_FOR_PRODUCTION',
+        });
+        const source = await workOrderCreationRepository.createSnapshotSource(db, salesOrder.id, item.id);
+        if (!source) throw error('VALIDATION_ERROR', 'Unable to build work order production snapshot.');
+        const snapshot = await workOrderSnapshotRepository.createSnapshot(db, {
+          workOrderId: workOrder.id,
+          customerName: source.customer_name,
+          productName: source.product_name,
+          quantity: source.quantity,
+          material: source.material,
+          specification: source.specification,
+          dimension: source.dimension,
+          color: source.color,
+          thickness: source.thickness,
+          productionNotes: source.production_notes,
+          artworkFileUrl: source.artwork_file_url,
+          artworkDriveUrl: source.artwork_drive_url,
+        });
+        workOrders.push({ ...workOrder, snapshot });
       }
     }
 
@@ -79,7 +95,7 @@ export async function createSalesOrder(pool, input) {
     return { ...salesOrder, items, payment, workOrders };
   } catch (e) {
     await db.query('ROLLBACK');
-    if (e.code === '23505') throw error('CONFLICT', 'Sales order, payment, or work order number already exists.');
+    if (e.code === '23505') throw error('CONFLICT', 'Sales order, payment, work order, or snapshot already exists.');
     if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.');
     throw e;
   } finally { db.release(); }

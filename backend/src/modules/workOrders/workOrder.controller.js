@@ -1,5 +1,6 @@
 import { pool } from '../../db/pool.js';
 import * as repository from './workOrder.repository.js';
+import * as detailRepository from './workOrderDetail.repository.js';
 import * as lifecycle from './workOrderLifecycle.service.js';
 
 function sendError(response, error) {
@@ -9,7 +10,7 @@ function sendError(response, error) {
 
 export async function getById(request, response) {
   try {
-    const data = await repository.findWorkOrderById(pool, request.params.id);
+    const data = await detailRepository.findOperationalDetail(pool, request.params.id);
     if (!data) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Work order not found.', details: {} } });
     response.json({ data });
   } catch (error) { sendError(response, error); }

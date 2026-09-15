@@ -10,6 +10,21 @@ export async function createWorkOrder(db, workOrder) {
   return rows[0];
 }
 
+export async function findWorkOrderById(db, id, forUpdate = false) {
+  const { rows } = await db.query(`SELECT ${FIELDS} FROM work_orders WHERE id = $1${forUpdate ? ' FOR UPDATE' : ''}`, [id]);
+  return rows[0] ?? null;
+}
+
+export async function startWorkOrder(db, id, startedAt = new Date()) {
+  const { rows } = await db.query(`UPDATE work_orders SET status = 'IN_PRODUCTION', started_at = COALESCE(started_at, $2), updated_at = NOW() WHERE id = $1 AND status = 'READY_FOR_PRODUCTION' RETURNING ${FIELDS}`, [id, startedAt]);
+  return rows[0] ?? null;
+}
+
+export async function completeWorkOrder(db, id, completedAt = new Date()) {
+  const { rows } = await db.query(`UPDATE work_orders SET status = 'COMPLETED_PRODUCTION', completed_at = COALESCE(completed_at, $2), updated_at = NOW() WHERE id = $1 AND status = 'IN_PRODUCTION' RETURNING ${FIELDS}`, [id, completedAt]);
+  return rows[0] ?? null;
+}
+
 export async function listBySalesOrder(db, salesOrderId) {
   const { rows } = await db.query(`SELECT ${FIELDS} FROM work_orders WHERE sales_order_id = $1 AND status <> 'INACTIVE' ORDER BY created_at ASC`, [salesOrderId]);
   return rows;

@@ -9,6 +9,7 @@ import productionEventRoutes from './modules/workOrders/productionEvent.routes.j
 import workOrderRoutes from './modules/workOrders/workOrder.routes.js';
 import productionBoardRoutes from './modules/workOrders/productionBoard.routes.js';
 import packingRoutes from './modules/packing/packing.routes.js';
+import handoverRoutes from './modules/handovers/handover.routes.js';
 
 const app = express();
 
@@ -32,6 +33,7 @@ app.use('/api/v1/work-orders/:id/production-events', productionEventRoutes);
 app.use('/api/v1/work-orders', workOrderRoutes);
 app.use('/api/v1/production-board', productionBoardRoutes);
 app.use('/api/v1/packing', packingRoutes);
+app.use('/api/v1/handovers', handoverRoutes);
 
 app.use((_request, response) => response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.', details: {} } }));
 app.use((error, _request, response, _next) => { console.error(error); response.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.', details: {} } }); });

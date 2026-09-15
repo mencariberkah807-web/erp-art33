@@ -7,13 +7,13 @@ async function transition(db, id, action) {
   if (!current) throw error('NOT_FOUND', 'Work order not found.');
   if (current.status === 'INACTIVE') throw error('VALIDATION_ERROR', 'Inactive work orders cannot transition.');
 
-  const nextStatus = action === 'START' ? 'IN_PRODUCTION' : 'COMPLETED_PRODUCTION';
   const expected = action === 'START' ? 'READY_FOR_PRODUCTION' : 'IN_PRODUCTION';
   if (current.status !== expected) throw error('VALIDATION_ERROR', `Work order cannot ${action.toLowerCase()} from ${current.status}.`);
 
+  const salesOrder = await db.query(`SELECT status FROM sales_orders WHERE id = $1 FOR UPDATE`, [current.salesOrderId]);
+  if (!salesOrder.rows[0]) throw error('NOT_FOUND', 'Sales order not found.');
+
   if (action === 'START') {
-    const salesOrder = await db.query(`SELECT status FROM sales_orders WHERE id = $1 FOR UPDATE`, [current.salesOrderId]);
-    if (!salesOrder.rows[0]) throw error('NOT_FOUND', 'Sales order not found.');
     if (!['READY_PRODUCTION', 'IN_PRODUCTION'].includes(salesOrder.rows[0].status)) {
       throw error('VALIDATION_ERROR', `Sales order cannot enter production from ${salesOrder.rows[0].status}.`);
     }
@@ -25,8 +25,29 @@ async function transition(db, id, action) {
     return result;
   }
 
+  if (salesOrder.rows[0].status !== 'IN_PRODUCTION') {
+    throw error('VALIDATION_ERROR', `Sales order cannot complete production from ${salesOrder.rows[0].status}.`);
+  }
+
   const result = await repository.completeWorkOrder(db, id);
   if (!result) throw error('VALIDATION_ERROR', 'Work order transition failed.');
+
+  const completion = await db.query(`
+    SELECT
+      (SELECT COUNT(*)::int FROM sales_order_items WHERE sales_order_id = $1 AND status = 'ACTIVE') AS active_items,
+      (SELECT COUNT(*)::int
+       FROM work_orders wo
+       JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id
+       WHERE wo.sales_order_id = $1
+         AND wo.status = 'COMPLETED_PRODUCTION'
+         AND soi.status = 'ACTIVE') AS completed_work_orders
+  `, [current.salesOrderId]);
+
+  const { active_items: activeItems, completed_work_orders: completedWorkOrders } = completion.rows[0];
+  if (activeItems > 0 && activeItems === completedWorkOrders) {
+    await db.query(`UPDATE sales_orders SET status = 'PACKING', updated_at = NOW() WHERE id = $1 AND status = 'IN_PRODUCTION'`, [current.salesOrderId]);
+  }
+
   return result;
 }
 

@@ -1,14 +1,13 @@
 import * as repository from './salesOrder.repository.js';
+import * as itemService from './salesOrderItems.service.js';
 
 const ORDER_TYPES = new Set(['DIRECT', 'MARKETPLACE']);
 const PRIORITIES = new Set(['REGULAR', 'SAME_DAY', 'INSTANT']);
 const STATUSES = new Set(['NEW_ORDER', 'READY_PRODUCTION', 'IN_PRODUCTION', 'PACKING', 'RTS', 'COMPLETED', 'INACTIVE']);
 const MARKETPLACES = new Set(['SHOPEE', 'TOKOPEDIA', 'TIKTOK_SHOP', 'LAZADA', 'BLIBLI', 'OTHER']);
-
 function error(code, message) { return Object.assign(new Error(message), { code }); }
 function text(value) { if (value === undefined || value === null) return null; const v = String(value).trim(); return v || null; }
 function validDate(value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value || '')); }
-
 function validate(input) {
   const orderType = text(input.orderType)?.toUpperCase();
   if (!ORDER_TYPES.has(orderType)) throw error('VALIDATION_ERROR', 'Order type must be DIRECT or MARKETPLACE.');
@@ -44,7 +43,19 @@ export async function getSalesOrder(pool, id) { return repository.findSalesOrder
 
 export async function createSalesOrder(pool, input) {
   const order = validate(input);
-  order.soNumber = await repository.nextSalesOrderNumber(pool);
-  try { return await repository.createSalesOrder(pool, order); }
-  catch (e) { if (e.code === '23505') throw error('CONFLICT', 'Sales order number already exists.'); throw e; }
+  if (!Array.isArray(input.items) || input.items.length < 1) throw error('VALIDATION_ERROR', 'At least one sales order item is required.');
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    order.soNumber = await repository.nextSalesOrderNumber(db);
+    const salesOrder = await repository.createSalesOrder(db, order);
+    const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items);
+    await db.query('COMMIT');
+    return { ...salesOrder, items };
+  } catch (e) {
+    await db.query('ROLLBACK');
+    if (e.code === '23505') throw error('CONFLICT', 'Sales order number or item number already exists.');
+    if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.');
+    throw e;
+  } finally { db.release(); }
 }

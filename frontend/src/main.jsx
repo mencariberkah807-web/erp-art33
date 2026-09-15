@@ -1,55 +1,79 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import CustomersPage from './pages/CustomersPage.jsx';
 import './styles.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 
+const navigation = [
+  { label: 'Dashboard', group: 'CORE' },
+  { label: 'Sales Orders', group: 'SALES' },
+  { label: 'Customers', group: 'MASTER DATA' },
+  { label: 'Products', group: 'MASTER DATA' },
+  { label: 'Work Orders', group: 'PRODUCTION' },
+  { label: 'Production', group: 'PRODUCTION' },
+  { label: 'Packing', group: 'FULFILLMENT' },
+  { label: 'Payments', group: 'FINANCE' },
+];
+
 function App() {
-  const [health, setHealth] = useState({ state: 'checking', data: null });
+  const [activePage, setActivePage] = useState('Customers');
+  const [apiState, setApiState] = useState('checking');
 
   useEffect(() => {
-    let active = true;
-
     fetch(`${API_BASE_URL}/health`)
-      .then(async (response) => {
-        const data = await response.json();
-        if (active) setHealth({ state: response.ok ? 'ok' : 'error', data });
-      })
-      .catch(() => {
-        if (active) setHealth({ state: 'error', data: null });
-      });
-
-    return () => {
-      active = false;
-    };
+      .then((response) => setApiState(response.ok ? 'ok' : 'error'))
+      .catch(() => setApiState('error'));
   }, []);
 
+  const isCustomers = activePage === 'Customers';
+
   return (
-    <main className="app-shell">
-      <section className="hero-card">
-        <p className="eyebrow">ARTKRILIK ERP V3</p>
-        <h1>Foundation</h1>
-        <p className="description">
-          The application shell is connected to the V3 REST API foundation.
-        </p>
-        <div className="status-card" aria-live="polite">
-          <span className={`status-dot status-${health.state}`} />
-          <div>
-            <strong>API Health</strong>
-            <p>
-              {health.state === 'checking' && 'Checking API…'}
-              {health.state === 'ok' && 'API is reachable.'}
-              {health.state === 'error' && 'API is unavailable.'}
-            </p>
-          </div>
+    <div className="erp-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">A</div>
+          <div><strong>ARTKRILIK</strong><span>ERP V3</span></div>
         </div>
-      </section>
-    </main>
+
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {['CORE', 'SALES', 'PRODUCTION', 'FULFILLMENT', 'FINANCE', 'MASTER DATA'].map((group) => (
+            <div className="nav-group" key={group}>
+              <span className="nav-label">{group}</span>
+              {navigation.filter((item) => item.group === group).map((item) => (
+                <button
+                  className={`nav-item ${activePage === item.label ? 'active' : ''}`}
+                  key={item.label}
+                  onClick={() => setActivePage(item.label)}
+                  type="button"
+                >
+                  <span className="nav-icon" />
+                  {item.label}
+                </button>
+              ))}
+            </div>
+          ))}
+        </nav>
+
+        <div className="sidebar-footer"><span className={`status-dot status-${apiState}`} /> API {apiState === 'ok' ? 'Connected' : apiState === 'checking' ? 'Checking' : 'Offline'}</div>
+      </aside>
+
+      <div className="workspace">
+        <header className="topbar">
+          <div><span className="breadcrumb">ARTKRILIK ERP / {isCustomers ? 'Master Data / Customers' : activePage}</span><h2>{activePage}</h2></div>
+          <div className="topbar-actions"><button className="icon-button" type="button" aria-label="Notifications">●</button><div className="user-chip"><span className="avatar">A</span><span>Admin</span></div></div>
+        </header>
+
+        <main className="page-container">
+          {isCustomers ? <CustomersPage /> : <PlaceholderPage title={activePage} />}
+        </main>
+      </div>
+    </div>
   );
 }
 
-createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>,
-);
+function PlaceholderPage({ title }) {
+  return <section className="placeholder"><p className="eyebrow">ARTKRILIK ERP V3</p><h1>{title}</h1><p>This module is part of the approved global architecture and will be implemented incrementally.</p></section>;
+}
+
+createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);

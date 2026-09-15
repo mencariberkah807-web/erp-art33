@@ -1,6 +1,9 @@
 export const FIELDS = `id, payment_number AS "paymentNumber", sales_order_id AS "salesOrderId", amount, payment_method AS "paymentMethod", payment_date AS "paymentDate", reference_number AS "referenceNumber", notes, status, created_by AS "createdBy", created_at AS "createdAt"`;
 
 export async function nextPaymentNumber(db) {
+  // Serialize payment-number allocation inside the surrounding transaction so
+  // concurrent payments cannot derive the same PAY number from MAX(...).
+  await db.query(`SELECT pg_advisory_xact_lock(824031)`);
   const { rows } = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(payment_number, '\\D', '', 'g'), '')::BIGINT), 0) + 1 AS next_number FROM payments`);
   return `PAY-${String(rows[0].next_number).padStart(6, '0')}`;
 }

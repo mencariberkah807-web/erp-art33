@@ -15,6 +15,22 @@ export async function findWorkOrderById(db, id, forUpdate = false) {
   return rows[0] ?? null;
 }
 
+export async function listWorkOrders(db, { page, pageSize, search, status }) {
+  const values = [];
+  const conditions = [];
+  if (status) { values.push(status); conditions.push(`wo.status = $${values.length}`); }
+  if (search) {
+    values.push(`%${search}%`);
+    conditions.push(`(wo.wo_number ILIKE $${values.length} OR so.so_number ILIKE $${values.length} OR COALESCE(c.name, '') ILIKE $${values.length} OR p.name ILIKE $${values.length})`);
+  }
+  const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const count = await db.query(`SELECT COUNT(*)::int AS total FROM work_orders wo JOIN sales_orders so ON so.id = wo.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id JOIN products p ON p.id = soi.product_id ${where}`, values);
+  const offset = (page - 1) * pageSize;
+  values.push(pageSize, offset);
+  const result = await db.query(`SELECT ${FIELDS}, so.so_number AS "salesOrderNumber", c.name AS "customerName", p.sku, p.name AS "productName", soi.quantity FROM work_orders wo JOIN sales_orders so ON so.id = wo.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id JOIN products p ON p.id = soi.product_id ${where} ORDER BY wo.created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`, values);
+  return { rows: result.rows, total: count.rows[0].total };
+}
+
 export async function startWorkOrder(db, id, startedAt = new Date()) {
   const { rows } = await db.query(`UPDATE work_orders SET status = 'IN_PRODUCTION', started_at = COALESCE(started_at, $2), updated_at = NOW() WHERE id = $1 AND status = 'READY_FOR_PRODUCTION' RETURNING ${FIELDS}`, [id, startedAt]);
   return rows[0] ?? null;

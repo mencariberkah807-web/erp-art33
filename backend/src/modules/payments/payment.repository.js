@@ -5,13 +5,21 @@ export async function nextPaymentNumber(db) {
   return `PAY-${String(rows[0].next_number).padStart(6, '0')}`;
 }
 
-export async function getPaymentContext(db, salesOrderId) {
+async function paymentContextQuery(db, salesOrderId, lock) {
   const { rows } = await db.query(`
     SELECT so.order_type AS "orderType",
            COALESCE((SELECT SUM(soi.item_total) FROM sales_order_items soi WHERE soi.sales_order_id = so.id AND soi.status = 'ACTIVE'), 0) AS "grandTotal",
            COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sales_order_id = so.id AND p.status = 'ACTIVE'), 0) AS "totalPaid"
-    FROM sales_orders so WHERE so.id = $1`, [salesOrderId]);
+    FROM sales_orders so WHERE so.id = $1 ${lock ? 'FOR UPDATE' : ''}`, [salesOrderId]);
   return rows[0] ?? null;
+}
+
+export async function getPaymentContext(db, salesOrderId) {
+  return paymentContextQuery(db, salesOrderId, false);
+}
+
+export async function getPaymentContextForUpdate(db, salesOrderId) {
+  return paymentContextQuery(db, salesOrderId, true);
 }
 
 export async function createPayment(db, payment) {

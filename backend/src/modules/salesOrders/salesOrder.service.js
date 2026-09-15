@@ -1,5 +1,7 @@
 import * as repository from './salesOrder.repository.js';
 import * as itemService from './salesOrderItems.service.js';
+import * as paymentService from '../payments/payment.service.js';
+import * as workOrderRepository from '../workOrders/workOrder.repository.js';
 
 const ORDER_TYPES = new Set(['DIRECT', 'MARKETPLACE']);
 const PRIORITIES = new Set(['REGULAR', 'SAME_DAY', 'INSTANT']);
@@ -50,11 +52,34 @@ export async function createSalesOrder(pool, input) {
     order.soNumber = await repository.nextSalesOrderNumber(db);
     const salesOrder = await repository.createSalesOrder(db, order);
     const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items);
+
+    let payment = null;
+    let workOrders = [];
+    if (order.orderType === 'MARKETPLACE') {
+      const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0);
+      payment = await paymentService.createPayment(db, salesOrder.id, {
+        amount: grandTotal,
+        paymentMethod: 'MARKETPLACE',
+        paymentDate: order.orderDate,
+        referenceNumber: order.trackingNumber,
+        notes: 'Marketplace order auto-paid.',
+      });
+      for (const item of items) {
+        const woNumber = await workOrderRepository.nextWorkOrderNumber(db);
+        workOrders.push(await workOrderRepository.createWorkOrder(db, {
+          woNumber,
+          salesOrderId: salesOrder.id,
+          salesOrderItemId: item.id,
+          status: 'READY_FOR_PRODUCTION',
+        }));
+      }
+    }
+
     await db.query('COMMIT');
-    return { ...salesOrder, items };
+    return { ...salesOrder, items, payment, workOrders };
   } catch (e) {
     await db.query('ROLLBACK');
-    if (e.code === '23505') throw error('CONFLICT', 'Sales order number or item number already exists.');
+    if (e.code === '23505') throw error('CONFLICT', 'Sales order, payment, or work order number already exists.');
     if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.');
     throw e;
   } finally { db.release(); }

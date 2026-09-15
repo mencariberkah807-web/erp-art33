@@ -3,7 +3,11 @@ import DirectOrderPage from './DirectOrderPage.jsx';
 
 export default function NewOrderPage({ onSelect, onCancel }) {
   const [view, setView] = useState('gate');
-  if (view === 'direct') return <DirectOrderPage onCancel={() => setView('gate')} onCreated={() => onSelect('CREATED')} />;
+
+  if (view === 'direct') {
+    return <DirectOrderPage onCancel={() => setView('gate')} onCreated={() => { setView('gate'); onSelect('CREATED'); }} />;
+  }
+
   return (
     <section className="page-section">
       <div className="page-header">

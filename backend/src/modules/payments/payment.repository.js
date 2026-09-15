@@ -1,8 +1,8 @@
 export const FIELDS = `id, payment_number AS "paymentNumber", sales_order_id AS "salesOrderId", amount, payment_method AS "paymentMethod", payment_date AS "paymentDate", reference_number AS "referenceNumber", notes, status, created_by AS "createdBy", created_at AS "createdAt"`;
 
 export async function nextPaymentNumber(db) {
-  const { rows } = await db.query(`SELECT 'PAY-' || LPAD((COALESCE(MAX(NULLIF(regexp_replace(payment_number, '\\D', '', 'g'), ''))::BIGINT, 0) + 1)::TEXT, 6, '0') AS number FROM payments FOR UPDATE`);
-  return rows[0].number;
+  const { rows } = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(payment_number, '\\D', '', 'g'), '')::BIGINT), 0) + 1 AS next_number FROM payments`);
+  return `PAY-${String(rows[0].next_number).padStart(6, '0')}`;
 }
 
 export async function createPayment(db, payment) {

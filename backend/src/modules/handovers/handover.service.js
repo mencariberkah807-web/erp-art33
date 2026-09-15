@@ -33,7 +33,6 @@ export async function createHandover(pool, salesOrderId, data = {}) {
     });
     if (!result) throw error('VALIDATION_ERROR', 'Handover creation failed.');
 
-    await db.query(`UPDATE sales_orders SET status = 'HANDOVER', updated_at = NOW() WHERE id = $1 AND status = 'RTS'`, [salesOrderId]);
     await db.query('COMMIT');
     return result;
   } catch (e) { await db.query('ROLLBACK'); throw e; }

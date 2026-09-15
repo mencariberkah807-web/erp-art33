@@ -1,4 +1,4 @@
-import { pool } from '../../db/pool.js';
+import { getPool } from '../../db/pool.js';
 import * as repository from './workOrder.repository.js';
 import * as detailRepository from './workOrderDetail.repository.js';
 import * as queryService from './workOrderQuery.service.js';
@@ -10,24 +10,24 @@ function sendError(response, error) {
 }
 
 export async function list(request, response) {
-  try { response.json(await queryService.listWorkOrders(pool, request.query)); }
+  try { response.json(await queryService.listWorkOrders(getPool(), request.query)); }
   catch (error) { sendError(response, error); }
 }
 
 export async function getById(request, response) {
   try {
-    const data = await detailRepository.findOperationalDetail(pool, request.params.id);
+    const data = await detailRepository.findOperationalDetail(getPool(), request.params.id);
     if (!data) return response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Work order not found.', details: {} } });
     response.json({ data });
   } catch (error) { sendError(response, error); }
 }
 
 export async function start(request, response) {
-  try { response.json({ data: await lifecycle.startWorkOrder(pool, request.params.id) }); }
+  try { response.json({ data: await lifecycle.startWorkOrder(getPool(), request.params.id) }); }
   catch (error) { sendError(response, error); }
 }
 
 export async function complete(request, response) {
-  try { response.json({ data: await lifecycle.completeWorkOrder(pool, request.params.id) }); }
+  try { response.json({ data: await lifecycle.completeWorkOrder(getPool(), request.params.id) }); }
   catch (error) { sendError(response, error); }
 }

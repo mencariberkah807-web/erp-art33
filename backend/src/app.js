@@ -4,6 +4,7 @@ import { checkDatabaseHealth, isDatabaseConfigured } from './db/pool.js';
 import customerRoutes from './modules/customers/customer.routes.js';
 import productRoutes from './modules/products/product.routes.js';
 import salesOrderRoutes from './modules/salesOrders/salesOrder.routes.js';
+import paymentRoutes from './modules/payments/payment.routes.js';
 import productionEventRoutes from './modules/workOrders/productionEvent.routes.js';
 import workOrderRoutes from './modules/workOrders/workOrder.routes.js';
 import productionBoardRoutes from './modules/workOrders/productionBoard.routes.js';
@@ -25,6 +26,7 @@ app.get('/health', async (_request, response) => {
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/sales-orders', salesOrderRoutes);
+app.use('/api/v1/sales-orders', paymentRoutes);
 app.use('/api/v1/work-orders/:id/production-events', productionEventRoutes);
 app.use('/api/v1/work-orders', workOrderRoutes);
 app.use('/api/v1/production-board', productionBoardRoutes);

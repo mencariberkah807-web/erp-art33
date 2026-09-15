@@ -11,9 +11,21 @@ async function transition(db, id, action) {
   const expected = action === 'START' ? 'READY_FOR_PRODUCTION' : 'IN_PRODUCTION';
   if (current.status !== expected) throw error('VALIDATION_ERROR', `Work order cannot ${action.toLowerCase()} from ${current.status}.`);
 
-  const result = action === 'START'
-    ? await repository.startWorkOrder(db, id)
-    : await repository.completeWorkOrder(db, id);
+  if (action === 'START') {
+    const salesOrder = await db.query(`SELECT status FROM sales_orders WHERE id = $1 FOR UPDATE`, [current.salesOrderId]);
+    if (!salesOrder.rows[0]) throw error('NOT_FOUND', 'Sales order not found.');
+    if (!['READY_PRODUCTION', 'IN_PRODUCTION'].includes(salesOrder.rows[0].status)) {
+      throw error('VALIDATION_ERROR', `Sales order cannot enter production from ${salesOrder.rows[0].status}.`);
+    }
+    const result = await repository.startWorkOrder(db, id);
+    if (!result) throw error('VALIDATION_ERROR', 'Work order transition failed.');
+    if (salesOrder.rows[0].status === 'READY_PRODUCTION') {
+      await db.query(`UPDATE sales_orders SET status = 'IN_PRODUCTION', updated_at = NOW() WHERE id = $1 AND status = 'READY_PRODUCTION'`, [current.salesOrderId]);
+    }
+    return result;
+  }
+
+  const result = await repository.completeWorkOrder(db, id);
   if (!result) throw error('VALIDATION_ERROR', 'Work order transition failed.');
   return result;
 }

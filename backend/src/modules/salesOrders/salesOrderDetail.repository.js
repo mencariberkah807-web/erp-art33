@@ -4,10 +4,11 @@ export async function findDetail(db, salesOrderId) {
   const orderResult = await db.query(`SELECT ${ORDER_FIELDS} FROM sales_orders so LEFT JOIN customers c ON c.id = so.customer_id WHERE so.id = $1`, [salesOrderId]);
   const order = orderResult.rows[0] ?? null;
   if (!order) return null;
-  const [itemsResult, paymentsResult, workOrdersResult] = await Promise.all([
+  const [itemsResult, paymentsResult, workOrdersResult, handoversResult] = await Promise.all([
     db.query(`SELECT soi.id, soi.sales_order_id AS "salesOrderId", soi.product_id AS "productId", soi.item_number AS "itemNumber", soi.quantity, soi.unit_price AS "unitPrice", soi.discount_type AS "discountType", soi.discount_value AS "discountValue", soi.item_total AS "itemTotal", soi.is_custom AS "isCustom", soi.production_notes AS "productionNotes", soi.artwork_file_url AS "artworkFileUrl", soi.artwork_drive_url AS "artworkDriveUrl", soi.status, p.sku, p.name AS "productName", p.unit AS "productUnit", p.material, p.specification, p.dimension, p.color, p.thickness FROM sales_order_items soi JOIN products p ON p.id = soi.product_id WHERE soi.sales_order_id = $1 ORDER BY soi.item_number`, [salesOrderId]),
     db.query(`SELECT id, payment_number AS "paymentNumber", sales_order_id AS "salesOrderId", amount, payment_method AS "paymentMethod", payment_date AS "paymentDate", reference_number AS "referenceNumber", notes, status, created_by AS "createdBy", created_at AS "createdAt" FROM payments WHERE sales_order_id = $1 AND status = 'ACTIVE' ORDER BY payment_date DESC, created_at DESC`, [salesOrderId]),
     db.query(`SELECT wo.id, wo.wo_number AS "woNumber", wo.sales_order_id AS "salesOrderId", wo.sales_order_item_id AS "salesOrderItemId", wo.status, wo.started_at AS "startedAt", wo.completed_at AS "completedAt", wo.rts_at AS "rtsAt", wo.created_at AS "createdAt", wo.updated_at AS "updatedAt", wos.product_name AS "snapshotProductName", wos.quantity AS "snapshotQuantity" FROM work_orders wo LEFT JOIN work_order_snapshots wos ON wos.work_order_id = wo.id WHERE wo.sales_order_id = $1 AND wo.status <> 'INACTIVE' ORDER BY wo.created_at ASC`, [salesOrderId]),
+    db.query(`SELECT id, sales_order_id AS "salesOrderId", handover_type AS "handoverType", recipient_name AS "recipientName", courier_name AS "courierName", handover_at AS "handoverAt", handed_over_by AS "handedOverBy", notes, created_at AS "createdAt" FROM handovers WHERE sales_order_id = $1 ORDER BY handover_at DESC, created_at DESC`, [salesOrderId]),
   ]);
-  return { ...order, items: itemsResult.rows, payments: paymentsResult.rows, workOrders: workOrdersResult.rows };
+  return { ...order, items: itemsResult.rows, payments: paymentsResult.rows, workOrders: workOrdersResult.rows, handovers: handoversResult.rows };
 }

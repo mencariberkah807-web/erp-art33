@@ -1,8 +1,8 @@
 export const FIELDS = `id, wo_number AS "woNumber", sales_order_id AS "salesOrderId", sales_order_item_id AS "salesOrderItemId", status, started_at AS "startedAt", completed_at AS "completedAt", rts_at AS "rtsAt", created_at AS "createdAt", updated_at AS "updatedAt"`;
 
 export async function nextWorkOrderNumber(db) {
-  const { rows } = await db.query(`SELECT 'WO-' || LPAD((COALESCE(MAX(NULLIF(regexp_replace(wo_number, '\\D', '', 'g'), ''))::BIGINT, 0) + 1)::TEXT, 6, '0') AS number FROM work_orders FOR UPDATE`);
-  return rows[0].number;
+  const { rows } = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(wo_number, '\\D', '', 'g'), ''))::BIGINT, 0) + 1 AS next_number FROM work_orders`);
+  return `WO-${String(rows[0].next_number).padStart(6, '0')}`;
 }
 
 export async function createWorkOrder(db, workOrder) {
@@ -16,17 +16,12 @@ export async function findWorkOrderById(db, id, forUpdate = false) {
 }
 
 export async function listWorkOrders(db, { page, pageSize, search, status }) {
-  const values = [];
-  const conditions = [];
+  const values = []; const conditions = [];
   if (status) { values.push(status); conditions.push(`wo.status = $${values.length}`); }
-  if (search) {
-    values.push(`%${search}%`);
-    conditions.push(`(wo.wo_number ILIKE $${values.length} OR so.so_number ILIKE $${values.length} OR COALESCE(c.name, '') ILIKE $${values.length} OR p.name ILIKE $${values.length})`);
-  }
+  if (search) { values.push(`%${search}%`); conditions.push(`(wo.wo_number ILIKE $${values.length} OR so.so_number ILIKE $${values.length} OR COALESCE(c.name, '') ILIKE $${values.length} OR p.name ILIKE $${values.length})`); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const count = await db.query(`SELECT COUNT(*)::int AS total FROM work_orders wo JOIN sales_orders so ON so.id = wo.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id JOIN products p ON p.id = soi.product_id ${where}`, values);
-  const offset = (page - 1) * pageSize;
-  values.push(pageSize, offset);
+  const offset = (page - 1) * pageSize; values.push(pageSize, offset);
   const result = await db.query(`SELECT ${FIELDS}, so.so_number AS "salesOrderNumber", c.name AS "customerName", p.sku, p.name AS "productName", soi.quantity FROM work_orders wo JOIN sales_orders so ON so.id = wo.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id JOIN products p ON p.id = soi.product_id ${where} ORDER BY wo.created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`, values);
   return { rows: result.rows, total: count.rows[0].total };
 }

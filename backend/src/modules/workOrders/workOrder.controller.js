@@ -1,11 +1,17 @@
 import { pool } from '../../db/pool.js';
 import * as repository from './workOrder.repository.js';
 import * as detailRepository from './workOrderDetail.repository.js';
+import * as queryService from './workOrderQuery.service.js';
 import * as lifecycle from './workOrderLifecycle.service.js';
 
 function sendError(response, error) {
-  const status = error.code === 'VALIDATION_ERROR' ? 400 : error.code === 'NOT_FOUND' ? 404 : 500;
+  const status = error.code === 'VALIDATION_ERROR' ? 400 : error.code === 'NOT_FOUND' ? 404 : error.code === 'CONFLICT' ? 409 : 500;
   response.status(status).json({ error: { code: error.code || 'INTERNAL_SERVER_ERROR', message: error.message || 'An unexpected error occurred.', details: {} } });
+}
+
+export async function list(request, response) {
+  try { response.json(await queryService.listWorkOrders(pool, request.query)); }
+  catch (error) { sendError(response, error); }
 }
 
 export async function getById(request, response) {

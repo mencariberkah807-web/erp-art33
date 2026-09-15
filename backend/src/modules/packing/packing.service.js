@@ -35,8 +35,12 @@ export async function packSalesOrder(pool, salesOrderId, { packedBy = null, note
 
     const result = await repository.pack(db, salesOrderId, packedBy, notes);
     if (!result) throw error('VALIDATION_ERROR', 'Packing transition failed.');
+
+    const rts = await db.query(`UPDATE sales_orders SET status = 'RTS', updated_at = NOW() WHERE id = $1 AND status = 'PACKING' RETURNING id, so_number AS "soNumber", status`, [salesOrderId]);
+    if (!rts.rows[0]) throw error('VALIDATION_ERROR', 'Sales order RTS transition failed.');
+
     await db.query('COMMIT');
-    return result;
+    return { packing: result, salesOrder: rts.rows[0] };
   } catch (e) { await db.query('ROLLBACK'); throw e; }
   finally { db.release(); }
 }

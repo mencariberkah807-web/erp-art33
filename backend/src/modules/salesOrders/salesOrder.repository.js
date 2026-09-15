@@ -14,14 +14,12 @@ const FIELDS = `
 `;
 
 export async function listSalesOrders(pool, { page, pageSize, search, status }) {
-  const values = [];
-  const conditions = [];
+  const values = []; const conditions = [];
   if (search) { values.push(`%${search}%`); conditions.push(`(so_number ILIKE $${values.length} OR tracking_number ILIKE $${values.length})`); }
   if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const count = await pool.query(`SELECT COUNT(*)::int AS total FROM sales_orders ${where}`, values);
-  const offset = (page - 1) * pageSize;
-  values.push(pageSize, offset);
+  const offset = (page - 1) * pageSize; values.push(pageSize, offset);
   const result = await pool.query(`SELECT ${FIELDS} FROM sales_orders ${where} ORDER BY created_at DESC LIMIT $${values.length - 1} OFFSET $${values.length}`, values);
   return { rows: result.rows, total: count.rows[0].total };
 }
@@ -32,7 +30,7 @@ export async function findSalesOrderById(pool, id) {
 }
 
 export async function nextSalesOrderNumber(db) {
-  const result = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(so_number, '\\D', '', 'g'), '')::bigint), 0) + 1 AS next_number FROM sales_orders`);
+  const result = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(so_number, '\\D', '', 'g'), '')::BIGINT), 0) + 1 AS next_number FROM sales_orders`);
   return `SO-${String(result.rows[0].next_number).padStart(6, '0')}`;
 }
 

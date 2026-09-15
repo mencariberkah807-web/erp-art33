@@ -2,6 +2,7 @@ import cors from 'cors';
 import express from 'express';
 import { checkDatabaseHealth, isDatabaseConfigured } from './db/pool.js';
 import customerRoutes from './modules/customers/customer.routes.js';
+import productRoutes from './modules/products/product.routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/health', async (_request, response) => {
 });
 
 app.use('/api/v1/customers', customerRoutes);
+app.use('/api/v1/products', productRoutes);
 
 app.use((_request, response) => {
   response.status(404).json({

@@ -1,6 +1,7 @@
 import cors from 'cors';
 import express from 'express';
 import { checkDatabaseHealth, isDatabaseConfigured } from './db/pool.js';
+import customerRoutes from './modules/customers/customer.routes.js';
 
 const app = express();
 
@@ -23,18 +24,26 @@ app.get('/health', async (_request, response) => {
   });
 });
 
+app.use('/api/v1/customers', customerRoutes);
+
 app.use((_request, response) => {
   response.status(404).json({
-    error: 'NOT_FOUND',
-    message: 'Route not found.',
+    error: {
+      code: 'NOT_FOUND',
+      message: 'Route not found.',
+      details: {},
+    },
   });
 });
 
 app.use((error, _request, response, _next) => {
   console.error(error);
   response.status(500).json({
-    error: 'INTERNAL_SERVER_ERROR',
-    message: 'An unexpected error occurred.',
+    error: {
+      code: 'INTERNAL_SERVER_ERROR',
+      message: 'An unexpected error occurred.',
+      details: {},
+    },
   });
 });
 

@@ -5,6 +5,15 @@ export async function nextPaymentNumber(db) {
   return `PAY-${String(rows[0].next_number).padStart(6, '0')}`;
 }
 
+export async function getPaymentContext(db, salesOrderId) {
+  const { rows } = await db.query(`
+    SELECT so.order_type AS "orderType",
+           COALESCE((SELECT SUM(soi.item_total) FROM sales_order_items soi WHERE soi.sales_order_id = so.id AND soi.status = 'ACTIVE'), 0) AS "grandTotal",
+           COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sales_order_id = so.id AND p.status = 'ACTIVE'), 0) AS "totalPaid"
+    FROM sales_orders so WHERE so.id = $1`, [salesOrderId]);
+  return rows[0] ?? null;
+}
+
 export async function createPayment(db, payment) {
   const { rows } = await db.query(`INSERT INTO payments (payment_number, sales_order_id, amount, payment_method, payment_date, reference_number, notes, status, created_by) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING ${FIELDS}`, [payment.paymentNumber, payment.salesOrderId, payment.amount, payment.paymentMethod, payment.paymentDate, payment.referenceNumber, payment.notes, payment.status || 'ACTIVE', payment.createdBy]);
   return rows[0];

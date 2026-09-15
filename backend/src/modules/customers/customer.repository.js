@@ -1,6 +1,7 @@
-import pool from '../../db/pool.js';
+import { getPool } from '../../db/pool.js';
 
 export async function listCustomers({ page, pageSize, search, status }) {
+  const pool = getPool();
   const offset = (page - 1) * pageSize;
   const values = [];
   const where = [];
@@ -31,6 +32,7 @@ export async function listCustomers({ page, pageSize, search, status }) {
 }
 
 export async function findCustomerById(id) {
+  const pool = getPool();
   const result = await pool.query(
     `SELECT id, customer_code, name, company, mobile, email, address, customer_type, status, notes, created_at, updated_at
      FROM customers WHERE id = $1`,
@@ -40,6 +42,7 @@ export async function findCustomerById(id) {
 }
 
 export async function createCustomer(data) {
+  const pool = getPool();
   const result = await pool.query(
     `INSERT INTO customers (customer_code, name, company, mobile, email, address, customer_type, notes)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -50,6 +53,7 @@ export async function createCustomer(data) {
 }
 
 export async function updateCustomer(id, data) {
+  const pool = getPool();
   const fields = [];
   const values = [];
 

@@ -5,6 +5,7 @@ import customerRoutes from './modules/customers/customer.routes.js';
 import productRoutes from './modules/products/product.routes.js';
 import salesOrderRoutes from './modules/salesOrders/salesOrder.routes.js';
 import productionEventRoutes from './modules/workOrders/productionEvent.routes.js';
+import workOrderRoutes from './modules/workOrders/workOrder.routes.js';
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/sales-orders', salesOrderRoutes);
 app.use('/api/v1/work-orders/:id/production-events', productionEventRoutes);
+app.use('/api/v1/work-orders', workOrderRoutes);
 
 app.use((_request, response) => response.status(404).json({ error: { code: 'NOT_FOUND', message: 'Route not found.', details: {} } }));
 app.use((error, _request, response, _next) => { console.error(error); response.status(500).json({ error: { code: 'INTERNAL_SERVER_ERROR', message: 'An unexpected error occurred.', details: {} } }); });

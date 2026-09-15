@@ -16,14 +16,8 @@ const FIELDS = `
 export async function listSalesOrders(pool, { page, pageSize, search, status }) {
   const values = [];
   const conditions = [];
-  if (search) {
-    values.push(`%${search}%`);
-    conditions.push(`(so_number ILIKE $${values.length} OR tracking_number ILIKE $${values.length})`);
-  }
-  if (status) {
-    values.push(status);
-    conditions.push(`status = $${values.length}`);
-  }
+  if (search) { values.push(`%${search}%`); conditions.push(`(so_number ILIKE $${values.length} OR tracking_number ILIKE $${values.length})`); }
+  if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
   const count = await pool.query(`SELECT COUNT(*)::int AS total FROM sales_orders ${where}`, values);
   const offset = (page - 1) * pageSize;
@@ -37,13 +31,13 @@ export async function findSalesOrderById(pool, id) {
   return result.rows[0] ?? null;
 }
 
-export async function nextSalesOrderNumber(pool) {
-  const result = await pool.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(so_number, '\\D', '', 'g'), '')::bigint), 0) + 1 AS next_number FROM sales_orders`);
+export async function nextSalesOrderNumber(db) {
+  const result = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(so_number, '\\D', '', 'g'), '')::bigint), 0) + 1 AS next_number FROM sales_orders`);
   return `SO-${String(result.rows[0].next_number).padStart(6, '0')}`;
 }
 
-export async function createSalesOrder(pool, order) {
-  const result = await pool.query(
+export async function createSalesOrder(db, order) {
+  const result = await db.query(
     `INSERT INTO sales_orders (so_number, order_type, customer_id, marketplace, tracking_number, order_date, deadline, priority)
      VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING ${FIELDS}`,
     [order.soNumber, order.orderType, order.customerId, order.marketplace, order.trackingNumber, order.orderDate, order.deadline, order.priority],

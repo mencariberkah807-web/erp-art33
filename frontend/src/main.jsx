@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import CustomersPage from './pages/CustomersPage.jsx';
+import ProductsPage from './pages/ProductsPage.jsx';
 import './styles.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
@@ -21,12 +22,19 @@ function App() {
   const [apiState, setApiState] = useState('checking');
 
   useEffect(() => {
+    let active = true;
     fetch(`${API_BASE_URL}/health`)
-      .then((response) => setApiState(response.ok ? 'ok' : 'error'))
-      .catch(() => setApiState('error'));
+      .then((response) => {
+        if (active) setApiState(response.ok ? 'ok' : 'error');
+      })
+      .catch(() => {
+        if (active) setApiState('error');
+      });
+    return () => { active = false; };
   }, []);
 
   const isCustomers = activePage === 'Customers';
+  const isProducts = activePage === 'Products';
 
   return (
     <div className="erp-shell">
@@ -60,12 +68,14 @@ function App() {
 
       <div className="workspace">
         <header className="topbar">
-          <div><span className="breadcrumb">ARTKRILIK ERP / {isCustomers ? 'Master Data / Customers' : activePage}</span><h2>{activePage}</h2></div>
+          <div><span className="breadcrumb">ARTKRILIK ERP / {isCustomers || isProducts ? `Master Data / ${activePage}` : activePage}</span><h2>{activePage}</h2></div>
           <div className="topbar-actions"><button className="icon-button" type="button" aria-label="Notifications">●</button><div className="user-chip"><span className="avatar">A</span><span>Admin</span></div></div>
         </header>
 
         <main className="page-container">
-          {isCustomers ? <CustomersPage /> : <PlaceholderPage title={activePage} />}
+          {isCustomers && <CustomersPage />}
+          {isProducts && <ProductsPage />}
+          {!isCustomers && !isProducts && <PlaceholderPage title={activePage} />}
         </main>
       </div>
     </div>

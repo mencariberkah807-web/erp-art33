@@ -11,9 +11,8 @@ function normalizeText(value) {
 function validateProduct(input, { partial = false } = {}) {
   const product = { ...input };
 
-  if (!partial || input.sku !== undefined) {
+  if (partial && input.sku !== undefined) {
     product.sku = normalizeText(input.sku);
-    if (!product.sku) throw validationError('SKU is required.');
   }
 
   if (!partial || input.name !== undefined) {
@@ -75,6 +74,7 @@ export async function getProduct(pool, id) {
 
 export async function createProduct(pool, input) {
   const product = validateProduct(input);
+  delete product.sku;
   try {
     return await repository.createProduct(pool, product);
   } catch (error) {

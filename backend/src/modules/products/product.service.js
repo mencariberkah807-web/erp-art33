@@ -89,6 +89,7 @@ export async function createProduct(pool, input) {
 
 export async function updateProduct(pool, id, input) {
   const product = validateProduct(input, { partial: true });
+  delete product.sku;
   try {
     return await repository.updateProduct(pool, id, product);
   } catch (error) {

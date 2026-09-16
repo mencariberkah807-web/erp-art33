@@ -32,6 +32,23 @@ export async function createItem(db, item) {
   return result.rows[0];
 }
 
+export async function updateItem(db, id, item) {
+  const result = await db.query(
+    `UPDATE sales_order_items
+     SET product_id = $2, item_number = $3, quantity = $4, unit_price = $5, discount_type = $6, discount_value = $7,
+         item_total = $8, is_custom = $9, production_notes = $10, artwork_file_url = $11, artwork_drive_url = $12, updated_at = NOW()
+     WHERE id = $1 AND status = 'ACTIVE'
+     RETURNING *`,
+    [id, item.productId, item.itemNumber, item.quantity, item.unitPrice, item.discountType, item.discountValue, item.itemTotal, item.isCustom, item.productionNotes, item.artworkFileUrl, item.artworkDriveUrl],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function deactivateItem(db, id) {
+  const result = await db.query(`UPDATE sales_order_items SET status = 'INACTIVE', updated_at = NOW() WHERE id = $1 AND status = 'ACTIVE' RETURNING id`, [id]);
+  return result.rows[0] ?? null;
+}
+
 export async function deactivateActiveItems(db, salesOrderId) {
   const result = await db.query(`UPDATE sales_order_items SET status = 'INACTIVE', updated_at = NOW() WHERE sales_order_id = $1 AND status = 'ACTIVE' RETURNING id`, [salesOrderId]);
   return result.rowCount;

@@ -6,8 +6,61 @@ function error(code, message) { return Object.assign(new Error(message), { code 
 
 export async function listPacking(pool) {
   const db = await pool.connect();
-  try { return await repository.listPackingOrders(db); }
-  finally { db.release(); }
+  try {
+    await db.query('BEGIN');
+
+    // Reconcile production-complete sales orders into the packing queue.
+    // This also repairs orders completed before the WO -> PACKING transition hook existed.
+    await db.query(`
+      UPDATE sales_orders so
+      SET status = 'PACKING', updated_at = NOW()
+      WHERE so.status = 'IN_PRODUCTION'
+        AND EXISTS (
+          SELECT 1
+          FROM sales_order_items soi
+          WHERE soi.sales_order_id = so.id
+            AND soi.status = 'ACTIVE'
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM sales_order_items soi
+          LEFT JOIN work_orders wo
+            ON wo.sales_order_item_id = soi.id
+           AND wo.sales_order_id = so.id
+          WHERE soi.sales_order_id = so.id
+            AND soi.status = 'ACTIVE'
+            AND (wo.id IS NULL OR wo.status <> 'COMPLETED_PRODUCTION')
+        )
+    `);
+
+    await db.query(`
+      INSERT INTO packing_orders (sales_order_id, status)
+      SELECT so.id, 'PENDING'
+      FROM sales_orders so
+      WHERE so.status = 'PACKING'
+        AND EXISTS (
+          SELECT 1
+          FROM sales_order_items soi
+          WHERE soi.sales_order_id = so.id
+            AND soi.status = 'ACTIVE'
+        )
+        AND NOT EXISTS (
+          SELECT 1
+          FROM packing_orders po
+          WHERE po.sales_order_id = so.id
+        )
+      ON CONFLICT (sales_order_id) DO NOTHING
+    `);
+
+    const result = await repository.listPackingOrders(db);
+    await db.query('COMMIT');
+    return result;
+  } catch (e) {
+    await db.query('ROLLBACK');
+    throw e;
+  } finally {
+    db.release();
+  }
 }
 
 export async function getPacking(pool, salesOrderId) {

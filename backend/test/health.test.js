@@ -34,7 +34,9 @@ test('unknown routes return a structured 404 response', async () => {
     const body = await response.json();
 
     assert.equal(response.status, 404);
-    assert.equal(body.error, 'NOT_FOUND');
+    assert.equal(body.error.code, 'NOT_FOUND');
+    assert.equal(body.error.message, 'Route not found.');
+    assert.deepEqual(body.error.details, {});
   } finally {
     await new Promise((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }

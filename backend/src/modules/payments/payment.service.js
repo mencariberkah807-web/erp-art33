@@ -43,6 +43,15 @@ export async function createPayment(db, salesOrderId, input) {
   };
   const result = await repository.createPayment(connection, payment);
   await audit.recordAudit(connection, { entityType: 'PAYMENT', entityId: result.id, action: AUDIT.PAYMENT_CREATED, newData: result });
+
+  const newTotalPaid = totalPaid + amount;
+  if (context.orderType !== 'MARKETPLACE' && context.status === 'RTS' && newTotalPaid >= grandTotal - 0.000001) {
+    const completed = await connection.query(`UPDATE sales_orders SET status = 'COMPLETED', updated_at = NOW() WHERE id = $1 AND status = 'RTS' RETURNING id, so_number AS "soNumber", status`, [salesOrderId]);
+    if (completed.rows[0]) {
+      await audit.recordAudit(connection, { entityType: 'SALES_ORDER', entityId: salesOrderId, action: AUDIT.SALES_ORDER_COMPLETED, newData: completed.rows[0] });
+    }
+  }
+
   return result;
 }
 

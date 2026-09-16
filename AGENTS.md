@@ -139,6 +139,136 @@ React owns presentation. Do not duplicate domain calculations across UI componen
 
 Primary CTA uses a light/brighter blue. ARTKRILIK navy `#1F3356` remains structural/brand. Red `#ED1C24` is destructive/accent, not the default Save/Create/Update/Submit CTA.
 
+## Current implementation checkpoint — 2026-09-16
+
+The following behavior has been implemented in the current repository and confirmed working by the user during the current build cycle:
+
+### Working
+
+- Dashboard loads successfully after the dashboard aggregation/query fix.
+- Direct Sales Order can be created and persisted.
+- Sales Order list displays persisted orders.
+- Sales Order View is a read-only recheck page.
+- Sales Order View displays dates as `DD/MM/YYYY`, not raw ISO timestamps.
+- Sales Order View does not expose Add Payment.
+- Payment action belongs to Edit Sales Order, not View.
+- Direct Order payment history supports multiple payment records and balance calculation.
+- Payment transaction handling reuses the active transaction client correctly.
+- Sales Order can create Work Orders.
+- Work Order list loads successfully after the ambiguous `id` query issue was fixed.
+- Work Order View uses a full detail-page pattern consistent with Sales Order View.
+- Work Order detail dates use `DD/MM/YYYY`.
+- Production Board loads and displays Work Orders by production status.
+- Production Board supports Start Production and Complete Production using the existing Work Order lifecycle endpoints.
+- Production processes remain non-sequential.
+
+### Locked UI behavior
+
+Sales Order View:
+
+```text
+VIEW = READ ONLY
+
+Back
+Edit
+Cancel Order (when permitted)
+Create WO (when permitted)
+Print
+```
+
+Payment is informational in View:
+
+```text
+Grand Total
+Total Paid
+Balance
+Payment Status
+Payment History
+```
+
+Payment editing/addition is performed from Edit Sales Order.
+
+Edit Sales Order:
+
+```text
+Existing Order Date → prefilled
+Existing Deadline   → prefilled
+```
+
+The user may change these values, but must not be forced to re-enter them merely to update another field.
+
+### Work Order relationship
+
+```text
+1 Active SO Item
+        ↓
+1 Work Order
+```
+
+Quantity does not create additional Work Orders.
+
+### Production UI
+
+Production is an operational board, not a sequential stage wizard.
+
+Allowed production concepts:
+
+```text
+Laser Cutting
+UV Printing
+Assembly
+Laser Marking
+Finishing
+```
+
+Do not introduce `Next Production Stage`, mandatory routing order, or a free stage selector without an explicit V3 change approval.
+
+## Current development state
+
+The active working vertical slice is:
+
+```text
+Customer
+   ↓
+Product
+   ↓
+Sales Order
+   ↓
+Payment
+   ↓
+Work Order
+   ↓
+Production
+```
+
+This slice is the current integration checkpoint. The next business-flow scope is RTS / Handover / Packing / Delivery.
+
+Do not treat the current implementation as proof that the entire ERP is complete. Validate each downstream domain as it is implemented.
+
+## Change-control checkpoint discipline
+
+When a change is completed and the user confirms it works, record the behavior as a working checkpoint before moving to another domain.
+
+Do not reopen a working checkpoint for unrelated cleanup.
+
+A regression fix must target the smallest responsible file/scope and must preserve previously confirmed behavior.
+
+For every implementation task:
+
+```text
+1. Scan actual repository state
+2. Identify exact file/function/dependency
+3. Propose one scoped change
+4. Obtain approval
+5. Apply only approved change
+6. Validate changed behavior
+7. Record checkpoint
+8. Commit to GitHub
+9. User pulls from GitHub
+```
+
+Do not loop back to broad repository scans after a confirmed working checkpoint unless the new task genuinely depends on repository-wide context.
+
 ## Database rules
 
 PostgreSQL is the relational source of truth. Migrations must be ordered, explicit, reviewable, reversible where practical, and scoped to the approved phase. Prefer additive migrations for established schemas.

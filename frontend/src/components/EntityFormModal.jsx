@@ -1,4 +1,8 @@
+import './EntityFormModal.css';
+
 export default function EntityFormModal({ title, description, fields, values, onChange, onSubmit, onClose, submitting, error }) {
+  const editing = title.toLowerCase().startsWith('edit ');
+
   return (
     <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && onClose()}>
       <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="entity-form-title">
@@ -33,7 +37,7 @@ export default function EntityFormModal({ title, description, fields, values, on
           {error && <div className="form-error" role="alert">{error}</div>}
           <div className="modal-actions">
             <button className="secondary-button" type="button" onClick={onClose} disabled={submitting}>Cancel</button>
-            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? 'Creating…' : 'Create'}</button>
+            <button className="primary-button" type="submit" disabled={submitting}>{submitting ? (editing ? 'Updating…' : 'Creating…') : (editing ? 'Update' : 'Create')}</button>
           </div>
         </form>
       </section>

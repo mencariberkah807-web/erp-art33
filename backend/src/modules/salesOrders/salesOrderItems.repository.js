@@ -31,3 +31,8 @@ export async function createItem(db, item) {
   );
   return result.rows[0];
 }
+
+export async function deactivateActiveItems(db, salesOrderId) {
+  const result = await db.query(`UPDATE sales_order_items SET status = 'INACTIVE', updated_at = NOW() WHERE sales_order_id = $1 AND status = 'ACTIVE' RETURNING id`, [salesOrderId]);
+  return result.rowCount;
+}

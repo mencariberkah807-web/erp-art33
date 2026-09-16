@@ -13,11 +13,20 @@ export default function DashboardPage({ onSelectSalesOrder }) {
   const loadDashboard = useCallback(async () => {
     setLoading(true); setError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/dashboard`);
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload?.error?.message || 'Unable to load dashboard.');
-      setDashboard(payload.data || EMPTY);
-    } catch (requestError) { setError(requestError.message); }
+      const response = await fetch(`${API_BASE_URL}/api/v1/dashboard`, { headers: { Accept: 'application/json' } });
+      const body = await response.text();
+      let payload = null;
+      if (body.trim()) {
+        try {
+          payload = JSON.parse(body);
+        } catch {
+          throw new Error(`Dashboard API returned invalid JSON (HTTP ${response.status}).`);
+        }
+      }
+      if (!response.ok) throw new Error(payload?.error?.message || `Unable to load dashboard (HTTP ${response.status}).`);
+      if (!payload?.data) throw new Error('Dashboard API returned an empty response.');
+      setDashboard(payload.data);
+    } catch (requestError) { setError(requestError instanceof Error ? requestError.message : 'Unable to load dashboard.'); }
     finally { setLoading(false); }
   }, []);
 

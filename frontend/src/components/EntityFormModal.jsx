@@ -12,7 +12,6 @@ export default function EntityFormModal({ title, description, fields, values, on
             <h2 id="entity-form-title">{title}</h2>
             {description && <p>{description}</p>}
           </div>
-          <button className="icon-button" type="button" onClick={onClose} aria-label="Close">×</button>
         </div>
 
         <form onSubmit={onSubmit}>

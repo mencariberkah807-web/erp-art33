@@ -70,6 +70,7 @@ export async function updateCustomer(id, input) {
   if (!existing) throw domainError('NOT_FOUND', 'Customer not found.');
 
   const data = validateCustomerInput(input, { partial: true });
+  delete data.customerCode;
   try {
     return await persistCustomer(id, data);
   } catch (error) {

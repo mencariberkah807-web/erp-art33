@@ -27,6 +27,11 @@ function validate(input) {
   else { if (!marketplace || !MARKETPLACES.has(marketplace)) throw error('VALIDATION_ERROR', 'Marketplace is required for marketplace orders.'); if (!trackingNumber) throw error('VALIDATION_ERROR', 'Tracking number is required for marketplace orders.'); }
   return { orderType, customerId, marketplace, trackingNumber, orderDate, deadline, priority };
 }
+function validatePatch(current, input) {
+  const merged = { ...current, ...input, orderType: current.orderType };
+  if (input.orderType && String(input.orderType).toUpperCase() !== current.orderType) throw error('VALIDATION_ERROR', 'Order type cannot be changed after creation.');
+  return validate(merged);
+}
 export async function listSalesOrders(pool, query) { const page = Math.max(Number.parseInt(query.page, 10) || 1, 1); const pageSize = Math.min(Math.max(Number.parseInt(query.pageSize, 10) || 20, 1), 100); const status = query.status ? String(query.status).trim().toUpperCase() : undefined; if (status && !STATUSES.has(status)) throw error('VALIDATION_ERROR', 'Invalid sales order status.'); const result = await repository.listSalesOrders(pool, { page, pageSize, search: text(query.search), status }); return { data: result.rows, meta: { page, pageSize, total: result.total } }; }
 export async function getSalesOrder(pool, id) { return repository.findSalesOrderById(pool, id); }
 export async function getSalesOrderDetail(pool, id) { return detailRepository.findDetail(pool, id); }
@@ -36,4 +41,38 @@ export async function createSalesOrder(pool, input) {
     if (order.orderType === 'MARKETPLACE') { const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0); payment = await paymentService.createPayment(db, salesOrder.id, { amount: grandTotal, paymentMethod: 'MARKETPLACE', paymentDate: order.orderDate, referenceNumber: order.trackingNumber, notes: 'Marketplace order auto-paid.' }); for (const item of items) { const woNumber = await workOrderRepository.nextWorkOrderNumber(db); const workOrder = await workOrderRepository.createWorkOrder(db, { woNumber, salesOrderId: salesOrder.id, salesOrderItemId: item.id, status: 'READY_FOR_PRODUCTION' }); const source = await workOrderCreationRepository.createSnapshotSource(db, salesOrder.id, item.id); if (!source) throw error('VALIDATION_ERROR', 'Unable to build work order production snapshot.'); const snapshot = await workOrderSnapshotRepository.createSnapshot(db, { workOrderId: workOrder.id, customerName: source.customer_name, productName: source.product_name, quantity: source.quantity, material: source.material, specification: source.specification, dimension: source.dimension, color: source.color, thickness: source.thickness, productionNotes: source.production_notes, artworkFileUrl: source.artwork_file_url, artworkDriveUrl: source.artwork_drive_url }); workOrders.push({ ...workOrder, snapshot }); } }
     await db.query('COMMIT'); return { ...salesOrder, items, payment, workOrders };
   } catch (e) { await db.query('ROLLBACK'); if (e.code === '23505') throw error('CONFLICT', 'Sales order, payment, work order, or snapshot already exists.'); if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.'); throw e; } finally { db.release(); }
+}
+
+export async function updateSalesOrder(pool, id, input) {
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    const current = await repository.findSalesOrderById(db, id, true);
+    if (!current) throw error('NOT_FOUND', 'Sales order not found.');
+    if (!['NEW_ORDER', 'READY_PRODUCTION'].includes(current.status)) throw error('CONFLICT', 'Sales order can only be edited before production starts.');
+    const order = validatePatch(current, input || {});
+    const updated = await repository.updateSalesOrder(db, id, order);
+    if (updated.orderType === 'DIRECT' && updated.customerId) {
+      const customer = await db.query('SELECT name FROM customers WHERE id = $1', [updated.customerId]);
+      if (customer.rows[0]) await workOrderSnapshotRepository.updateCustomerNameBySalesOrder(db, id, customer.rows[0].name);
+    }
+    await db.query('COMMIT');
+    return detailRepository.findDetail(pool, id);
+  } catch (e) { await db.query('ROLLBACK'); if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer reference does not exist.'); throw e; } finally { db.release(); }
+}
+
+export async function cancelSalesOrder(pool, id) {
+  const db = await pool.connect();
+  try {
+    await db.query('BEGIN');
+    const current = await repository.findSalesOrderById(db, id, true);
+    if (!current) throw error('NOT_FOUND', 'Sales order not found.');
+    if (!['NEW_ORDER', 'READY_PRODUCTION'].includes(current.status)) throw error('CONFLICT', 'Sales order cannot be cancelled after production has started.');
+    await repository.cancelSalesOrder(db, id);
+    const itemServiceResult = await import('./salesOrderItems.repository.js');
+    await itemServiceResult.deactivateActiveItems(db, id);
+    await workOrderRepository.deactivateActiveBySalesOrder(db, id);
+    await db.query('COMMIT');
+    return detailRepository.findDetail(pool, id);
+  } catch (e) { await db.query('ROLLBACK'); throw e; } finally { db.release(); }
 }

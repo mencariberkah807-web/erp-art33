@@ -46,3 +46,6 @@ export async function validateAndCreateItems(db, salesOrderId, items) {
 }
 
 export async function listItems(db, salesOrderId) { return repository.listItems(db, salesOrderId); }
+export async function updateExistingItem(db, id, item) { return repository.updateItem(db, id, item); }
+export async function createNewItem(db, item) { return repository.createItem(db, item); }
+export async function removeItemForEdit(db, id) { return repository.deactivateItem(db, id); }

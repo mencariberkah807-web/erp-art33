@@ -14,11 +14,13 @@ function normalize(item, index, salesOrderId) {
   if (!Number.isFinite(unitPrice) || unitPrice < 0) throw error('VALIDATION_ERROR', `Item ${index + 1}: unit price must be non-negative.`);
   if (!['NOMINAL', 'PERCENTAGE'].includes(discountType)) throw error('VALIDATION_ERROR', `Item ${index + 1}: invalid discount type.`);
   if (!Number.isFinite(discountValue) || discountValue < 0) throw error('VALIDATION_ERROR', `Item ${index + 1}: discount must be non-negative.`);
+  if (discountType === 'PERCENTAGE' && discountValue > 100) throw error('VALIDATION_ERROR', `Item ${index + 1}: percentage discount cannot exceed 100%.`);
   const gross = quantity * unitPrice;
   const discount = discountType === 'PERCENTAGE' ? gross * discountValue / 100 : discountValue;
   if (discount > gross) throw error('VALIDATION_ERROR', `Item ${index + 1}: discount cannot exceed item gross total.`);
   return {
     salesOrderId,
+    id: text(item.id),
     productId,
     itemNumber: index + 1,
     quantity,
@@ -33,9 +35,13 @@ function normalize(item, index, salesOrderId) {
   };
 }
 
-export async function validateAndCreateItems(db, salesOrderId, items) {
+export function validateAndNormalizeItems(salesOrderId, items) {
   if (!Array.isArray(items) || items.length < 1) throw error('VALIDATION_ERROR', 'At least one sales order item is required.');
-  const normalized = items.map((item, index) => normalize(item ?? {}, index, salesOrderId));
+  return items.map((item, index) => normalize(item ?? {}, index, salesOrderId));
+}
+
+export async function validateAndCreateItems(db, salesOrderId, items) {
+  const normalized = validateAndNormalizeItems(salesOrderId, items);
   return Promise.all(normalized.map((item) => repository.createItem(db, item)));
 }
 

@@ -44,10 +44,10 @@ export async function findCustomerById(id) {
 export async function createCustomer(data) {
   const pool = getPool();
   const result = await pool.query(
-    `INSERT INTO customers (customer_code, name, company, mobile, email, address, customer_type, notes)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    `INSERT INTO customers (name, company, mobile, email, address, customer_type, notes)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
      RETURNING id, customer_code, name, company, mobile, email, address, customer_type, status, notes, created_at, updated_at`,
-    [data.customerCode, data.name, data.company, data.mobile, data.email, data.address, data.customerType, data.notes],
+    [data.name, data.company, data.mobile, data.email, data.address, data.customerType, data.notes],
   );
   return result.rows[0];
 }

@@ -1,6 +1,6 @@
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import pg from 'pg';
 
@@ -8,7 +8,7 @@ const { Client } = pg;
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const DB_DIR = path.join(ROOT, '.local', 'postgres');
 const DB_LOG = path.join(ROOT, '.local', 'postgres.log');
-const ENV_FILE = path.join(ROOT, '.env');
+const ENV_FILE = path.join(ROOT, 'backend', '.env');
 const PORT = 55432;
 const DB_USER = 'erp_art33';
 const DB_NAME = 'erp_art33';
@@ -73,9 +73,9 @@ async function ensureDatabase() {
 
 async function applyMigrations() {
   const migrationsDir = path.join(ROOT, 'database', 'migrations');
-  const files = (await import('node:fs/promises')).readdir(migrationsDir)
-    .then((names) => names.filter((name) => /^\d+_.*\.sql$/.test(name)).sort());
-  const migrationFiles = await files;
+  const migrationFiles = (await readdir(migrationsDir))
+    .filter((name) => /^\d+_.*\.sql$/.test(name))
+    .sort();
 
   const client = new Client({ connectionString: DATABASE_URL });
   await client.connect();
@@ -112,7 +112,7 @@ async function ensureEnv() {
   try {
     content = await readFile(ENV_FILE, 'utf8');
   } catch {
-    content = 'PORT=4000\nCORS_ORIGIN=http://localhost:5173\nVITE_API_BASE_URL=http://localhost:4000\n';
+    content = 'PORT=4000\nCORS_ORIGIN=http://localhost:5173\nVITE_API_BASE_URL=http://localhost:5173\n';
   }
 
   const lines = content.split(/\r?\n/).filter((line) => !/^DATABASE_URL=/.test(line));

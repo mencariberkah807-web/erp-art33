@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
+const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
 
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
+function paymentTotal(payments) { return payments.reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0)), 0); }
 
 export default function DirectOrderPage({ onCancel, onCreated }) {
   const [customers, setCustomers] = useState([]);
@@ -13,6 +15,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   const [deadline, setDeadline] = useState('');
   const [priority, setPriority] = useState('REGULAR');
   const [items, setItems] = useState([emptyItem()]);
+  const [payments, setPayments] = useState([emptyPayment()]);
   const [saving, setSaving] = useState(false);
   const [loadingMaster, setLoadingMaster] = useState(true);
   const [error, setError] = useState('');
@@ -34,6 +37,9 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
     return { subtotal: sum.subtotal + gross, discount: sum.discount + Math.min(discount, gross), total: sum.total + Math.max(0, gross - discount) };
   }, { subtotal: 0, discount: 0, total: 0 }), [items]);
 
+  const totalPaid = paymentTotal(payments);
+  const balance = Math.max(0, totals.total - totalPaid);
+
   function updateItem(index, key, value) { setItems((current) => current.map((item, i) => i === index ? { ...item, [key]: value } : item)); }
   function selectProduct(index, productId) {
     const product = products.find((p) => p.id === productId);
@@ -41,6 +47,9 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   }
   function addItem() { setItems((current) => [...current, emptyItem()]); }
   function removeItem(index) { setItems((current) => current.filter((_, i) => i !== index)); }
+  function updatePayment(index, key, value) { setPayments((current) => current.map((payment, i) => i === index ? { ...payment, [key]: value } : payment)); }
+  function addPayment() { setPayments((current) => [...current, emptyPayment()]); }
+  function removePayment(index) { setPayments((current) => current.length > 1 ? current.filter((_, i) => i !== index) : current); }
 
   async function submit(event) {
     event.preventDefault(); setError('');
@@ -48,9 +57,12 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
     if (!deadline) return setError('Deadline is required.');
     if (deadline < orderDate) return setError('Deadline must be on or after order date.');
     if (!items.length || items.some((item) => !item.productId || Number(item.quantity) < 1)) return setError('At least one valid product item is required.');
+    if (totalPaid > totals.total + 0.000001) return setError('Total payment cannot exceed Grand Total.');
+    if (payments.some((payment) => Number(payment.amount || 0) < 0)) return setError('Payment amount cannot be negative.');
+    if (payments.some((payment) => Number(payment.amount || 0) > 0 && !payment.paymentMethod)) return setError('Payment method is required for every payment.');
     setSaving(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/sales-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderType: 'DIRECT', customerId, orderDate, deadline, priority, items }) });
+      const response = await fetch(`${API_BASE_URL}/api/v1/sales-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderType: 'DIRECT', customerId, orderDate, deadline, priority, items, payments: payments.filter((payment) => Number(payment.amount || 0) > 0) }) });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message || 'Unable to create sales order.');
       onCreated(body.data);
@@ -58,7 +70,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   }
 
   return <section className="page-section">
-    <div className="page-header"><div><p className="eyebrow">SALES / DIRECT ORDER</p><h1>Direct Order</h1><p className="page-description">Create a customer order with its items and production references.</p></div></div>
+    <div className="page-header"><div><p className="eyebrow">SALES / DIRECT ORDER</p><h1>Direct Order</h1><p className="page-description">Create a customer order with its items and payment information.</p></div></div>
     <form onSubmit={submit}>
       <div className="form-card"><div className="section-heading"><div><h2>Order Information</h2><p>Transaction identity and delivery deadline.</p></div></div>
         <div className="form-grid">
@@ -74,7 +86,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
             <label className="form-field"><span>Quantity *</span><input type="number" min="1" step="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} /></label>
             <label className="form-field"><span>Unit Price *</span><input type="number" min="0" step="1" value={item.unitPrice} onChange={(e) => updateItem(index, 'unitPrice', e.target.value)} /></label>
             <label className="form-field"><span>Discount Type</span><select value={item.discountType} onChange={(e) => updateItem(index, 'discountType', e.target.value)}><option value="NOMINAL">Nominal</option><option value="PERCENTAGE">Percentage</option></select></label>
-            <label className="form-field"><span>Discount Value</span><input type="number" min="0" step="0.01" value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /></label>
+            <label className="form-field"><span>Discount Value</span><input type="number" min="0" step="0.01" max={item.discountType === 'PERCENTAGE' ? 100 : undefined} value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /></label>
             <label className="form-field form-field-full"><span>Production Notes</span><textarea rows="2" value={item.productionNotes} onChange={(e) => updateItem(index, 'productionNotes', e.target.value)} placeholder="Production instruction for this item..." /></label>
             <label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={(e) => updateItem(index, 'artworkFileUrl', e.target.value)} placeholder="File / preview URL" /></label>
             <label className="form-field"><span>Artwork Drive Link</span><input value={item.artworkDriveUrl} onChange={(e) => updateItem(index, 'artworkDriveUrl', e.target.value)} placeholder="Drive URL" /></label>
@@ -83,6 +95,17 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
         </div>)}</div>
       </div>
       <div className="summary-card"><div><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div><div><span>Discount</span><strong>{money(totals.discount)}</strong></div><div className="grand-total"><span>Grand Total</span><strong>{money(totals.total)}</strong></div></div>
+      <div className="form-card"><div className="section-heading"><div><h2>Payment</h2><p>Record payments inline. Additional payments can be added before creating the order.</p></div><button className="secondary-button" type="button" onClick={addPayment}>+ Add Payment</button></div>
+        <div className="items-stack">{payments.map((payment, index) => <div className="item-card" key={index}><div className="item-header"><strong>Payment {index + 1}</strong>{payments.length > 1 && <button className="text-danger" type="button" onClick={() => removePayment(index)}>Remove</button>}</div>
+          <div className="form-grid"><label className="form-field"><span>Amount</span><input type="number" min="0" step="1" value={payment.amount} onChange={(e) => updatePayment(index, 'amount', e.target.value)} max={Math.max(0, totals.total - totalPaid + Number(payment.amount || 0))} /></label>
+            <label className="form-field"><span>Payment Method</span><select value={payment.paymentMethod} onChange={(e) => updatePayment(index, 'paymentMethod', e.target.value)}><option value="Cash">Cash</option><option value="Transfer">Transfer</option><option value="QRIS">QRIS</option></select></label>
+            <label className="form-field"><span>Payment Date</span><input type="date" value={payment.paymentDate} onChange={(e) => updatePayment(index, 'paymentDate', e.target.value)} /></label>
+            <label className="form-field"><span>Reference Number</span><input value={payment.referenceNumber} onChange={(e) => updatePayment(index, 'referenceNumber', e.target.value)} /></label>
+            <label className="form-field form-field-full"><span>Notes</span><input value={payment.notes} onChange={(e) => updatePayment(index, 'notes', e.target.value)} /></label>
+          </div>
+        </div>)}</div>
+        <div className="summary-card"><div><span>Grand Total</span><strong>{money(totals.total)}</strong></div><div><span>Amount Paid</span><strong>{money(totalPaid)}</strong></div><div className="grand-total"><span>Balance</span><strong>{money(balance)}</strong></div></div>
+      </div>
       {error && <div className="form-error">{error}</div>}
       <div className="modal-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : 'Create Order'}</button></div>
     </form>

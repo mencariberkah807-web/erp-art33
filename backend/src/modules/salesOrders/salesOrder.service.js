@@ -52,13 +52,59 @@ export async function updateSalesOrder(pool, id, input) {
     if (!['NEW_ORDER', 'READY_PRODUCTION'].includes(current.status)) throw error('CONFLICT', 'Sales order can only be edited before production starts.');
     const order = validatePatch(current, input || {});
     const updated = await repository.updateSalesOrder(db, id, order);
+
+    if (Array.isArray(input?.items)) {
+      const normalized = itemService.validateAndNormalizeItems(id, input.items);
+      const currentItems = await itemService.listItems(db, id);
+      const incomingIds = new Set(normalized.map((item) => item.id).filter(Boolean));
+      const currentIds = new Set(currentItems.map((item) => item.id));
+      const removed = currentItems.filter((item) => !incomingIds.has(item.id));
+      if (normalized.length < 1) throw error('VALIDATION_ERROR', 'At least one active sales order item is required.');
+
+      for (const item of removed) {
+        await itemService.removeItemForEdit(db, item.id);
+        await workOrderRepository.deactivateBySalesOrderItem(db, item.id);
+      }
+
+      for (const item of normalized) {
+        let saved;
+        if (item.id && currentIds.has(item.id)) {
+          saved = await itemService.updateExistingItem(db, item.id, item);
+        } else {
+          saved = await itemService.createNewItem(db, item);
+        }
+        const source = await workOrderCreationRepository.createSnapshotSource(db, id, saved.id);
+        if (source) {
+          await workOrderSnapshotRepository.updateBySalesOrderItem(db, saved.id, {
+            customerName: source.customer_name,
+            productName: source.product_name,
+            quantity: source.quantity,
+            material: source.material,
+            specification: source.specification,
+            dimension: source.dimension,
+            color: source.color,
+            thickness: source.thickness,
+            productionNotes: source.production_notes,
+            artworkFileUrl: source.artwork_file_url,
+            artworkDriveUrl: source.artwork_drive_url,
+          });
+        }
+      }
+
+      const changedSet = new Set([...removed.map((item) => item.id), ...normalized.filter((item) => !item.id).map((item) => item.productId)]);
+      if (removed.length || normalized.some((item) => !item.id)) {
+        await db.query(`UPDATE sales_orders SET status = 'NEW_ORDER', updated_at = NOW() WHERE id = $1 AND status = 'READY_PRODUCTION'`, [id]);
+      }
+      void changedSet;
+    }
+
     if (updated.orderType === 'DIRECT' && updated.customerId) {
       const customer = await db.query('SELECT name FROM customers WHERE id = $1', [updated.customerId]);
       if (customer.rows[0]) await workOrderSnapshotRepository.updateCustomerNameBySalesOrder(db, id, customer.rows[0].name);
     }
     await db.query('COMMIT');
     return detailRepository.findDetail(pool, id);
-  } catch (e) { await db.query('ROLLBACK'); if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer reference does not exist.'); throw e; } finally { db.release(); }
+  } catch (e) { await db.query('ROLLBACK'); if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.'); throw e; } finally { db.release(); }
 }
 
 export async function cancelSalesOrder(pool, id) {
@@ -69,8 +115,7 @@ export async function cancelSalesOrder(pool, id) {
     if (!current) throw error('NOT_FOUND', 'Sales order not found.');
     if (!['NEW_ORDER', 'READY_PRODUCTION'].includes(current.status)) throw error('CONFLICT', 'Sales order cannot be cancelled after production has started.');
     await repository.cancelSalesOrder(db, id);
-    const itemServiceResult = await import('./salesOrderItems.repository.js');
-    await itemServiceResult.deactivateActiveItems(db, id);
+    await itemService.deactivateActiveItems(db, id);
     await workOrderRepository.deactivateActiveBySalesOrder(db, id);
     await db.query('COMMIT');
     return detailRepository.findDetail(pool, id);

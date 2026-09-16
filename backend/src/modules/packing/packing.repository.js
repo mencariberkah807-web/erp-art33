@@ -44,7 +44,7 @@ export async function listPackingOrders(db) {
 }
 
 export async function findBySalesOrderId(db, salesOrderId, forUpdate = false) {
-  const { rows } = await db.query(`SELECT ${FIELDS} FROM packing_orders po JOIN sales_orders so ON so.id = po.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id WHERE po.sales_order_id = $1${forUpdate ? ' FOR UPDATE' : ''}`, [salesOrderId]);
+  const { rows } = await db.query(`SELECT ${FIELDS} FROM packing_orders po JOIN sales_orders so ON so.id = po.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id WHERE po.sales_order_id = $1${forUpdate ? ' FOR UPDATE OF po' : ''}`, [salesOrderId]);
   return rows[0] ?? null;
 }
 

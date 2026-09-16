@@ -6,3 +6,19 @@ export async function createSnapshot(db, snapshot) {
 export async function updateCustomerNameBySalesOrder(db, salesOrderId, customerName) {
   await db.query(`UPDATE work_order_snapshots wos SET customer_name = $2 WHERE wos.work_order_id IN (SELECT wo.id FROM work_orders wo WHERE wo.sales_order_id = $1 AND wo.status = 'READY_FOR_PRODUCTION')`, [salesOrderId, customerName]);
 }
+
+export async function updateBySalesOrderItem(db, salesOrderItemId, snapshot) {
+  const { rows } = await db.query(
+    `UPDATE work_order_snapshots wos
+     SET customer_name = $2, product_name = $3, quantity = $4, material = $5, specification = $6,
+         dimension = $7, color = $8, thickness = $9, production_notes = $10,
+         artwork_file_url = $11, artwork_drive_url = $12
+     WHERE wos.work_order_id IN (
+       SELECT wo.id FROM work_orders wo
+       WHERE wo.sales_order_item_id = $1 AND wo.status = 'READY_FOR_PRODUCTION'
+     )
+     RETURNING wos.id, wos.work_order_id AS "workOrderId"`,
+    [salesOrderItemId, snapshot.customerName, snapshot.productName, snapshot.quantity, snapshot.material, snapshot.specification, snapshot.dimension, snapshot.color, snapshot.thickness, snapshot.productionNotes, snapshot.artworkFileUrl, snapshot.artworkDriveUrl],
+  );
+  return rows[0] ?? null;
+}

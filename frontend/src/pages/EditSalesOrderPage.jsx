@@ -5,11 +5,12 @@ const marketplaces = [['SHOPEE','Shopee'],['TOKOPEDIA','Tokopedia'],['TIKTOK_SHO
 const emptyItem = () => ({ id: '', productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
 function itemTotal(item) { const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0); const discount = item.discountType === 'PERCENTAGE' ? gross * Number(item.discountValue || 0) / 100 : Number(item.discountValue || 0); return Math.max(0, gross - discount); }
+function dateValue(value) { if (!value) return ''; const text = String(value); return text.length >= 10 ? text.slice(0, 10) : text; }
 
 export default function EditSalesOrderPage({ order, onCancel, onSaved }) {
   const [customers, setCustomers] = useState([]); const [products, setProducts] = useState([]); const [loadingMaster, setLoadingMaster] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState('');
   const [customerId, setCustomerId] = useState(order.customerId || ''); const [marketplace, setMarketplace] = useState(order.marketplace || ''); const [trackingNumber, setTrackingNumber] = useState(order.trackingNumber || '');
-  const [orderDate, setOrderDate] = useState(order.orderDate || ''); const [deadline, setDeadline] = useState(order.deadline || ''); const [priority, setPriority] = useState(order.priority || 'REGULAR');
+  const [orderDate, setOrderDate] = useState(dateValue(order.orderDate)); const [deadline, setDeadline] = useState(dateValue(order.deadline)); const [priority, setPriority] = useState(order.priority || 'REGULAR');
   const [items, setItems] = useState((order.items || []).filter((item) => item.status !== 'INACTIVE').map((item) => ({ id: item.id, productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice, discountType: item.discountType, discountValue: item.discountValue, isCustom: item.isCustom, productionNotes: item.productionNotes || '', artworkFileUrl: item.artworkFileUrl || '', artworkDriveUrl: item.artworkDriveUrl || '' })));
 
   useEffect(() => { Promise.all([fetch(`${API_BASE_URL}/api/v1/customers?page=1&pageSize=100&status=ACTIVE`).then(r => r.json()), fetch(`${API_BASE_URL}/api/v1/products?page=1&pageSize=100&status=ACTIVE`).then(r => r.json())]).then(([c,p]) => { if (c.error) throw new Error(c.error.message); if (p.error) throw new Error(p.error.message); setCustomers(c.data || []); setProducts(p.data || []); }).catch(e => setError(e.message)).finally(() => setLoadingMaster(false)); }, []);

@@ -5,6 +5,7 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
 const emptyCustomer = () => ({ name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
+const emptyProduct = () => ({ name: '', category: '', material: '', thickness: '', dimension: '', color: '', specification: '', unit: '', standardPrice: '', description: '', imageUrl: '', status: 'ACTIVE' });
 const CUSTOMER_FIELDS = [
   { name: 'name', label: 'Name', required: true },
   { name: 'company', label: 'Company' },
@@ -13,6 +14,12 @@ const CUSTOMER_FIELDS = [
   { name: 'customerType', label: 'Customer Type' },
   { name: 'address', label: 'Address', fullWidth: true },
   { name: 'notes', label: 'Notes', type: 'textarea', fullWidth: true },
+];
+const PRODUCT_FIELDS = [
+  { name: 'name', label: 'Name', required: true }, { name: 'category', label: 'Category' }, { name: 'material', label: 'Material' },
+  { name: 'thickness', label: 'Thickness' }, { name: 'dimension', label: 'Dimension' }, { name: 'color', label: 'Color' }, { name: 'unit', label: 'Unit', required: true },
+  { name: 'standardPrice', label: 'Standard Price', type: 'number', min: '0', step: '0.01', required: true },
+  { name: 'specification', label: 'Specification', fullWidth: true }, { name: 'imageUrl', label: 'Image URL', fullWidth: true }, { name: 'description', label: 'Description', type: 'textarea', fullWidth: true },
 ];
 
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
@@ -26,6 +33,10 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   const [customerForm, setCustomerForm] = useState(emptyCustomer());
   const [customerSubmitting, setCustomerSubmitting] = useState(false);
   const [customerError, setCustomerError] = useState('');
+  const [productModalOpen, setProductModalOpen] = useState(false);
+  const [productForm, setProductForm] = useState(emptyProduct());
+  const [productSubmitting, setProductSubmitting] = useState(false);
+  const [productError, setProductError] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
   const [deadline, setDeadline] = useState('');
   const [priority, setPriority] = useState('REGULAR');
@@ -68,6 +79,8 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
 
   function openCustomerModal() { setCustomerForm(emptyCustomer()); setCustomerError(''); setCustomerModalOpen(true); }
   function updateCustomerField(name, value) { setCustomerForm((current) => ({ ...current, [name]: value })); }
+  function openProductModal() { setProductForm(emptyProduct()); setProductError(''); setProductModalOpen(true); }
+  function updateProductField(name, value) { setProductForm((current) => ({ ...current, [name]: value })); }
 
   async function createCustomer(event) {
     event.preventDefault(); setCustomerSubmitting(true); setCustomerError('');
@@ -78,6 +91,19 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
       const customer = payload.data;
       setCustomers((current) => [customer, ...current]); setCustomerId(customer.id); setCustomerModalOpen(false); setCustomerForm(emptyCustomer());
     } catch (e) { setCustomerError(e.message); } finally { setCustomerSubmitting(false); }
+  }
+
+  async function createProduct(event) {
+    event.preventDefault(); setProductSubmitting(true); setProductError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...productForm, standardPrice: Number(productForm.standardPrice) }) });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error?.message || 'Unable to create product.');
+      const product = payload.data;
+      setProducts((current) => [product, ...current]);
+      setItems((current) => current.map((item, index) => index === current.findIndex((entry) => !entry.productId) ? { ...item, productId: product.id, unitPrice: Number(product.standardPrice || 0) } : item));
+      setProductModalOpen(false); setProductForm(emptyProduct());
+    } catch (e) { setProductError(e.message); } finally { setProductSubmitting(false); }
   }
 
   async function submit(event) {
@@ -109,7 +135,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
           <label className="form-field"><span>Priority *</span><select value={priority} onChange={(e) => setPriority(e.target.value)}><option value="REGULAR">Regular</option><option value="SAME_DAY">Same Day</option><option value="INSTANT">Instant</option></select></label>
         </div>
       </div>
-      <div className="form-card"><div className="section-heading"><div><h2>Items</h2><p>Products are selected from Product Master. Unit price remains editable.</p></div><button className="secondary-button" type="button" onClick={addItem}>+ Add Product</button></div>
+      <div className="form-card"><div className="section-heading"><div><h2>Items</h2><p>Products are selected from Product Master. Unit price remains editable.</p></div><button className="secondary-button" type="button" onClick={openProductModal}>+ Add Product</button></div>
         <div className="items-stack">{items.map((item, index) => <div className="item-card" key={index}><div className="item-header"><strong>Item {index + 1}</strong>{items.length > 1 && <button className="text-danger" type="button" onClick={() => removeItem(index)}>Remove</button>}</div>
           <div className="form-grid"><label className="form-field form-field-full"><span>Product *</span><select value={item.productId} onChange={(e) => selectProduct(index, e.target.value)} disabled={loadingMaster}><option value="">Select product...</option>{products.map((p) => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}</select></label>
             <label className="form-field"><span>Quantity *</span><input type="number" min="1" step="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} /></label>
@@ -139,5 +165,6 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
       <div className="modal-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : 'Create Order'}</button></div>
     </form>
     {customerModalOpen && <EntityFormModal title="Add Customer" description="Create a customer master record and use it immediately in this order." fields={CUSTOMER_FIELDS} values={customerForm} onChange={updateCustomerField} onSubmit={createCustomer} onClose={() => !customerSubmitting && setCustomerModalOpen(false)} submitting={customerSubmitting} error={customerError} />}
+    {productModalOpen && <EntityFormModal title="Add Product" description="Create a product master record and use it immediately in this order." fields={PRODUCT_FIELDS} values={productForm} onChange={updateProductField} onSubmit={createProduct} onClose={() => !productSubmitting && setProductModalOpen(false)} submitting={productSubmitting} error={productError} />}
   </section>;
 }

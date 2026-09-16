@@ -1,4 +1,5 @@
 import * as repository from './packing.repository.js';
+import * as detailRepository from '../salesOrders/salesOrderDetail.repository.js';
 import * as audit from '../audit/audit.service.js';
 import { AUDIT } from '../audit/audit.events.js';
 
@@ -65,8 +66,13 @@ export async function listPacking(pool) {
 
 export async function getPacking(pool, salesOrderId) {
   const db = await pool.connect();
-  try { return await repository.findBySalesOrderId(db, salesOrderId); }
-  finally { db.release(); }
+  try {
+    const packing = await repository.findBySalesOrderId(db, salesOrderId);
+    if (!packing) return null;
+    const detail = await detailRepository.findDetail(db, salesOrderId);
+    if (!detail) return packing;
+    return { ...packing, ...detail, salesOrderNumber: packing.salesOrderNumber };
+  } finally { db.release(); }
 }
 
 export async function packSalesOrder(pool, salesOrderId, { packedBy = null, notes = null } = {}) {

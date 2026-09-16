@@ -2,7 +2,7 @@ import * as repository from './workOrder.repository.js';
 import * as audit from '../audit/audit.service.js';
 import { AUDIT } from '../audit/audit.events.js';
 
-function error(code, message) { return Object.assign(new Error(message), { code }); }
+function error(code, message) { return Object.assign(new Error(message), { code, message }); }
 
 async function transition(db, id, action) {
   const current = await repository.findWorkOrderById(db, id, true);
@@ -30,7 +30,10 @@ async function transition(db, id, action) {
 
   const completion = await db.query(`SELECT (SELECT COUNT(*)::int FROM sales_order_items WHERE sales_order_id = $1 AND status = 'ACTIVE') AS active_items, (SELECT COUNT(*)::int FROM work_orders wo JOIN sales_order_items soi ON soi.id = wo.sales_order_item_id WHERE wo.sales_order_id = $1 AND wo.status = 'COMPLETED_PRODUCTION' AND soi.status = 'ACTIVE') AS completed_work_orders`, [current.salesOrderId]);
   const { active_items: activeItems, completed_work_orders: completedWorkOrders } = completion.rows[0];
-  if (activeItems > 0 && activeItems === completedWorkOrders) await db.query(`UPDATE sales_orders SET status = 'PACKING', updated_at = NOW() WHERE id = $1 AND status = 'IN_PRODUCTION'`, [current.salesOrderId]);
+  if (activeItems > 0 && activeItems === completedWorkOrders) {
+    await db.query(`UPDATE sales_orders SET status = 'PACKING', updated_at = NOW() WHERE id = $1 AND status = 'IN_PRODUCTION'`, [current.salesOrderId]);
+    await db.query(`INSERT INTO packing_orders (sales_order_id, status) VALUES ($1, 'PENDING') ON CONFLICT (sales_order_id) DO UPDATE SET status = CASE WHEN packing_orders.status = 'PACKED' THEN packing_orders.status ELSE 'PENDING' END`, [current.salesOrderId]);
+  }
   await audit.recordAudit(db, { entityType: 'WORK_ORDER', entityId: id, action: AUDIT.WORK_ORDER_COMPLETED, oldData: current, newData: result });
   return result;
 }

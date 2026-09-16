@@ -56,6 +56,7 @@ export async function getCustomer(id) {
 
 export async function createCustomer(input) {
   const data = validateCustomerInput(input);
+  delete data.customerCode;
   try {
     return await insertCustomer(data);
   } catch (error) {

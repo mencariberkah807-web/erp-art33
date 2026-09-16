@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const EMPTY = { summary: { totalSO: 0, draft: 0, dpPaid: 0, readyWO: 0, delivered: 0 }, production: { ready: 0, inProduction: 0, completed: 0 }, fulfillment: { packing: 0, rts: 0 }, recentSalesOrders: [] };
 const money = (value) => new Intl.NumberFormat('id-ID').format(Number(value || 0));
 const statusLabel = (value) => String(value || '').replaceAll('_', ' ');

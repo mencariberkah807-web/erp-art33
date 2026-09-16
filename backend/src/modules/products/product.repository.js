@@ -55,12 +55,11 @@ export async function findProductById(pool, id) {
 export async function createProduct(pool, product) {
   const result = await pool.query(
     `INSERT INTO products (
-      sku, name, category, material, thickness, dimension, color,
+      name, category, material, thickness, dimension, color,
       specification, unit, standard_price, description, image_url, status
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     RETURNING ${PRODUCT_FIELDS}`,
     [
-      product.sku,
       product.name,
       product.category,
       product.material,

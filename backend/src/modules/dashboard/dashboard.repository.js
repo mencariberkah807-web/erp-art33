@@ -1,16 +1,29 @@
 export async function getDashboardSummary(db) {
   const result = await db.query(`
     SELECT
-      COUNT(*) FILTER (WHERE status <> 'INACTIVE')::int AS total_so,
-      COUNT(*) FILTER (WHERE status = 'READY_PRODUCTION')::int AS ready_wo,
-      COUNT(*) FILTER (WHERE status = 'COMPLETED')::int AS delivered,
+      COUNT(*) FILTER (WHERE so.status <> 'INACTIVE')::int AS total_so,
+      COUNT(*) FILTER (WHERE so.status = 'NEW_ORDER')::int AS draft,
+      COUNT(*) FILTER (WHERE so.status = 'READY_PRODUCTION')::int AS ready_wo,
+      COUNT(*) FILTER (WHERE so.status = 'COMPLETED')::int AS delivered,
       COUNT(*) FILTER (
-        WHERE status NOT IN ('INACTIVE', 'COMPLETED')
-          AND order_type = 'DIRECT'
-          AND COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sales_order_id = so.id AND p.status = 'ACTIVE'), 0) > 0
-          AND COALESCE((SELECT SUM(p.amount) FROM payments p WHERE p.sales_order_id = so.id AND p.status = 'ACTIVE'), 0) < COALESCE((SELECT SUM(soi.item_total) FROM sales_order_items soi WHERE soi.sales_order_id = so.id AND soi.status = 'ACTIVE'), 0)
+        WHERE so.status <> 'INACTIVE'
+          AND so.order_type = 'DIRECT'
+          AND COALESCE(pay.total_paid, 0) > 0
+          AND COALESCE(pay.total_paid, 0) < COALESCE(items.total_items, 0)
       )::int AS dp_paid
     FROM sales_orders so
+    LEFT JOIN (
+      SELECT sales_order_id, SUM(amount) AS total_paid
+      FROM payments
+      WHERE status = 'ACTIVE'
+      GROUP BY sales_order_id
+    ) pay ON pay.sales_order_id = so.id
+    LEFT JOIN (
+      SELECT sales_order_id, SUM(item_total) AS total_items
+      FROM sales_order_items
+      WHERE status = 'ACTIVE'
+      GROUP BY sales_order_id
+    ) items ON items.sales_order_id = so.id
   `);
 
   const production = await db.query(`

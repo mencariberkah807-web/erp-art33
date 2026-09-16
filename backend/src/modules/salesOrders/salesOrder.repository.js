@@ -24,8 +24,8 @@ export async function listSalesOrders(pool, { page, pageSize, search, status }) 
   return { rows: result.rows, total: count.rows[0].total };
 }
 
-export async function findSalesOrderById(pool, id) {
-  const result = await pool.query(`SELECT ${FIELDS} FROM sales_orders WHERE id = $1`, [id]);
+export async function findSalesOrderById(pool, id, forUpdate = false) {
+  const result = await pool.query(`SELECT ${FIELDS} FROM sales_orders WHERE id = $1${forUpdate ? ' FOR UPDATE' : ''}`, [id]);
   return result.rows[0] ?? null;
 }
 
@@ -41,4 +41,20 @@ export async function createSalesOrder(db, order) {
     [order.soNumber, order.orderType, order.customerId, order.marketplace, order.trackingNumber, order.orderDate, order.deadline, order.priority],
   );
   return result.rows[0];
+}
+
+export async function updateSalesOrder(db, id, order) {
+  const result = await db.query(
+    `UPDATE sales_orders
+     SET customer_id = $2, marketplace = $3, tracking_number = $4, order_date = $5, deadline = $6, priority = $7, updated_at = NOW()
+     WHERE id = $1
+     RETURNING ${FIELDS}`,
+    [id, order.customerId, order.marketplace, order.trackingNumber, order.orderDate, order.deadline, order.priority],
+  );
+  return result.rows[0] ?? null;
+}
+
+export async function cancelSalesOrder(db, id) {
+  const result = await db.query(`UPDATE sales_orders SET status = 'INACTIVE', updated_at = NOW() WHERE id = $1 RETURNING ${FIELDS}`, [id]);
+  return result.rows[0] ?? null;
 }

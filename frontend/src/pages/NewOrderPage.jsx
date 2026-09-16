@@ -4,8 +4,8 @@ import MarketplaceOrderPage from './MarketplaceOrderPage.jsx';
 
 export default function NewOrderPage({ onSelect, onCancel }) {
   const [view, setView] = useState('gate');
-  if (view === 'direct') return <DirectOrderPage onCancel={() => setView('gate')} onCreated={() => { setView('gate'); onSelect('CREATED'); }} />;
-  if (view === 'marketplace') return <MarketplaceOrderPage onCancel={() => setView('gate')} onCreated={() => { setView('gate'); onSelect('CREATED'); }} />;
+  if (view === 'direct') return <DirectOrderPage onCancel={() => setView('gate')} onCreated={() => onSelect('CREATED')} />;
+  if (view === 'marketplace') return <MarketplaceOrderPage onCancel={() => setView('gate')} onCreated={() => onSelect('CREATED')} />;
   return <section className="page-section">
     <div className="page-header"><div><p className="eyebrow">SALES / NEW ORDER</p><h1>New Order</h1><p className="page-description">Choose the order channel before entering the transaction.</p></div></div>
     <div className="order-gate-grid">

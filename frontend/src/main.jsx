@@ -13,7 +13,7 @@ import HandoverPage from './pages/HandoverPage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
 import './styles.css';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const navigation = [
   { label: 'Dashboard', group: 'CORE' }, { label: 'Sales Orders', group: 'SALES' }, { label: 'Customers', group: 'MASTER DATA' }, { label: 'Products', group: 'MASTER DATA' }, { label: 'Work Orders', group: 'PRODUCTION' }, { label: 'Production', group: 'PRODUCTION' }, { label: 'Packing', group: 'FULFILLMENT' }, { label: 'Handover', group: 'FULFILLMENT' }, { label: 'Payments', group: 'FINANCE' },
 ];

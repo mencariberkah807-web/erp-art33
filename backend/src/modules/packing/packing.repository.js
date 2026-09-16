@@ -1,12 +1,50 @@
-export const FIELDS = `po.id, po.sales_order_id AS "salesOrderId", so.so_number AS "salesOrderNumber", po.packed_at AS "packedAt", po.packed_by AS "packedBy", po.notes, po.status, po.created_at AS "createdAt"`;
+export const FIELDS = `
+  po.id,
+  po.sales_order_id AS "salesOrderId",
+  so.so_number AS "salesOrderNumber",
+  so.order_date AS "orderDate",
+  so.deadline,
+  so.priority,
+  so.order_type AS "orderType",
+  so.customer_id AS "customerId",
+  c.name AS "customerName",
+  po.packed_at AS "packedAt",
+  po.packed_by AS "packedBy",
+  po.notes,
+  po.status,
+  po.created_at AS "createdAt"
+`;
 
 export async function listPackingOrders(db) {
-  const { rows } = await db.query(`SELECT ${FIELDS} FROM packing_orders po JOIN sales_orders so ON so.id = po.sales_order_id ORDER BY po.created_at DESC`);
+  const { rows } = await db.query(`
+    SELECT ${FIELDS}
+    FROM packing_orders po
+    JOIN sales_orders so ON so.id = po.sales_order_id
+    LEFT JOIN customers c ON c.id = so.customer_id
+    WHERE po.status = 'PENDING'
+      AND so.status = 'PACKING'
+      AND EXISTS (
+        SELECT 1
+        FROM sales_order_items soi
+        JOIN work_orders wo ON wo.sales_order_item_id = soi.id
+        WHERE soi.sales_order_id = so.id
+          AND soi.status = 'ACTIVE'
+      )
+      AND NOT EXISTS (
+        SELECT 1
+        FROM sales_order_items soi
+        LEFT JOIN work_orders wo ON wo.sales_order_item_id = soi.id
+        WHERE soi.sales_order_id = so.id
+          AND soi.status = 'ACTIVE'
+          AND (wo.id IS NULL OR wo.status <> 'COMPLETED_PRODUCTION')
+      )
+    ORDER BY so.deadline ASC NULLS LAST, po.created_at ASC
+  `);
   return rows;
 }
 
 export async function findBySalesOrderId(db, salesOrderId, forUpdate = false) {
-  const { rows } = await db.query(`SELECT ${FIELDS} FROM packing_orders po JOIN sales_orders so ON so.id = po.sales_order_id WHERE po.sales_order_id = $1${forUpdate ? ' FOR UPDATE' : ''}`, [salesOrderId]);
+  const { rows } = await db.query(`SELECT ${FIELDS} FROM packing_orders po JOIN sales_orders so ON so.id = po.sales_order_id LEFT JOIN customers c ON c.id = so.customer_id WHERE po.sales_order_id = $1${forUpdate ? ' FOR UPDATE' : ''}`, [salesOrderId]);
   return rows[0] ?? null;
 }
 

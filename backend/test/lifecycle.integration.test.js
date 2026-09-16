@@ -58,10 +58,33 @@ integrationTest('ERP lifecycle API reaches COMPLETED for a direct order', async 
     const completedWo = (await completeWoResponse.json()).data;
     assert.equal(completedWo.status, 'COMPLETED_PRODUCTION');
 
-    const detailResponse = await fetch(`${base}/api/v1/sales-orders/${order.id}`);
-    assert.equal(detailResponse.status, 200);
-    const detail = (await detailResponse.json()).data;
-    assert.equal(detail.status, 'PACKING');
+    const packingResponse = await fetch(`${base}/api/v1/packing/${order.id}/pack`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ notes: 'Integration test packing' }),
+    });
+    assert.equal(packingResponse.status, 200);
+    const packed = (await packingResponse.json()).data;
+    assert.equal(packed.salesOrder.status, 'RTS');
+
+    const handoverResponse = await fetch(`${base}/api/v1/sales-orders/${order.id}/handovers`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ handoverType: 'CUSTOMER_PICKUP', recipientName: 'Integration Test' }),
+    });
+    assert.equal(handoverResponse.status, 201);
+
+    const blockedCompletion = await fetch(`${base}/api/v1/sales-orders/${order.id}/complete`, { method: 'POST' });
+    assert.equal(blockedCompletion.status, 400);
+
+    const paymentResponse = await fetch(`${base}/api/v1/sales-orders/${order.id}/payments`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ amount: 1000, paymentMethod: 'Cash', paymentDate: '2026-01-02' }),
+    });
+    assert.equal(paymentResponse.status, 201);
+
+    const completeResponse = await fetch(`${base}/api/v1/sales-orders/${order.id}/complete`, { method: 'POST' });
+    assert.equal(completeResponse.status, 200);
+    const completed = (await completeResponse.json()).data;
+    assert.equal(completed.status, 'COMPLETED');
   } finally {
     await client.end().catch(() => {});
     await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));

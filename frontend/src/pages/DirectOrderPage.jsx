@@ -1,8 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import EntityFormModal from '../components/EntityFormModal.jsx';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
+const emptyCustomer = () => ({ customerCode: '', name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
+const CUSTOMER_FIELDS = [
+  { name: 'customerCode', label: 'Customer Code', required: true },
+  { name: 'name', label: 'Name', required: true },
+  { name: 'company', label: 'Company' },
+  { name: 'mobile', label: 'Mobile' },
+  { name: 'email', label: 'Email', type: 'email' },
+  { name: 'customerType', label: 'Customer Type' },
+  { name: 'address', label: 'Address', fullWidth: true },
+  { name: 'notes', label: 'Notes', type: 'textarea', fullWidth: true },
+];
 
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
 function paymentTotal(payments) { return payments.reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0)), 0); }
@@ -11,6 +23,10 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [customerId, setCustomerId] = useState('');
+  const [customerModalOpen, setCustomerModalOpen] = useState(false);
+  const [customerForm, setCustomerForm] = useState(emptyCustomer());
+  const [customerSubmitting, setCustomerSubmitting] = useState(false);
+  const [customerError, setCustomerError] = useState('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
   const [deadline, setDeadline] = useState('');
   const [priority, setPriority] = useState('REGULAR');
@@ -51,6 +67,40 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   function addPayment() { setPayments((current) => [...current, emptyPayment()]); }
   function removePayment(index) { setPayments((current) => current.length > 1 ? current.filter((_, i) => i !== index) : current); }
 
+  function openCustomerModal() {
+    setCustomerForm(emptyCustomer());
+    setCustomerError('');
+    setCustomerModalOpen(true);
+  }
+
+  function updateCustomerField(name, value) {
+    setCustomerForm((current) => ({ ...current, [name]: value }));
+  }
+
+  async function createCustomer(event) {
+    event.preventDefault();
+    setCustomerSubmitting(true);
+    setCustomerError('');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/customers`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(customerForm),
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload?.error?.message || 'Unable to create customer.');
+      const customer = payload.data;
+      setCustomers((current) => [customer, ...current]);
+      setCustomerId(customer.id);
+      setCustomerModalOpen(false);
+      setCustomerForm(emptyCustomer());
+    } catch (e) {
+      setCustomerError(e.message);
+    } finally {
+      setCustomerSubmitting(false);
+    }
+  }
+
   async function submit(event) {
     event.preventDefault(); setError('');
     if (!customerId) return setError('Customer is required.');
@@ -74,7 +124,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
     <form onSubmit={submit}>
       <div className="form-card"><div className="section-heading"><div><h2>Order Information</h2><p>Transaction identity and delivery deadline.</p></div></div>
         <div className="form-grid">
-          <label className="form-field"><span>Customer *</span><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Select customer...</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select></label>
+          <div className="form-field customer-picker-field"><span>Customer *</span><div className="inline-field"><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Select customer...</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select><button className="secondary-button" type="button" onClick={openCustomerModal}>+ Add Customer</button></div></div>
           <label className="form-field"><span>Order Date *</span><input type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} /></label>
           <label className="form-field"><span>Deadline *</span><input type="date" min={orderDate} value={deadline} onChange={(e) => setDeadline(e.target.value)} /></label>
           <label className="form-field"><span>Priority *</span><select value={priority} onChange={(e) => setPriority(e.target.value)}><option value="REGULAR">Regular</option><option value="SAME_DAY">Same Day</option><option value="INSTANT">Instant</option></select></label>
@@ -109,5 +159,6 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
       {error && <div className="form-error">{error}</div>}
       <div className="modal-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : 'Create Order'}</button></div>
     </form>
+    {customerModalOpen && <EntityFormModal title="Add Customer" description="Create a customer master record and use it immediately in this order." fields={CUSTOMER_FIELDS} values={customerForm} onChange={updateCustomerField} onSubmit={createCustomer} onClose={() => !customerSubmitting && setCustomerModalOpen(false)} submitting={customerSubmitting} error={customerError} />}
   </section>;
 }

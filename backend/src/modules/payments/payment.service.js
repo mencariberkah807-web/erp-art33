@@ -1,4 +1,6 @@
 import * as repository from './payment.repository.js';
+import * as audit from '../audit/audit.service.js';
+import { AUDIT } from '../audit/audit.events.js';
 
 const PAYMENT_METHODS = new Set(['Cash', 'Transfer', 'QRIS']);
 function error(code, message) { return Object.assign(new Error(message), { code }); }
@@ -11,7 +13,10 @@ export async function createPayment(db, salesOrderId, input) {
   if (!Number.isFinite(amount) || amount <= 0) throw error('VALIDATION_ERROR', 'Payment amount must be greater than zero.');
 
   const paymentMethod = text(input.paymentMethod);
-  if (!paymentMethod || !PAYMENT_METHODS.has(paymentMethod)) throw error('VALIDATION_ERROR', 'Payment method must be Cash, Transfer, or QRIS.');
+  const marketplaceAutoPay = paymentMethod === 'MARKETPLACE';
+  if ((!paymentMethod || (!PAYMENT_METHODS.has(paymentMethod) && !marketplaceAutoPay))) {
+    throw error('VALIDATION_ERROR', 'Payment method must be Cash, Transfer, or QRIS.');
+  }
 
   const paymentDate = text(input.paymentDate) || new Date().toISOString().slice(0, 10);
   if (!validDate(paymentDate)) throw error('VALIDATION_ERROR', 'Payment date must use YYYY-MM-DD.');
@@ -22,7 +27,8 @@ export async function createPayment(db, salesOrderId, input) {
     if (client) await connection.query('BEGIN');
     const context = await repository.getPaymentContextForUpdate(connection, salesOrderId);
     if (!context) throw error('NOT_FOUND', 'Sales order not found.');
-    if (context.orderType === 'MARKETPLACE') throw error('VALIDATION_ERROR', 'Marketplace orders are automatically paid.');
+    if (marketplaceAutoPay && context.orderType !== 'MARKETPLACE') throw error('VALIDATION_ERROR', 'Marketplace auto-payment is only valid for marketplace orders.');
+    if (context.orderType === 'MARKETPLACE' && !marketplaceAutoPay) throw error('VALIDATION_ERROR', 'Marketplace orders are automatically paid.');
 
     const grandTotal = Number(context.grandTotal || 0);
     const totalPaid = Number(context.totalPaid || 0);
@@ -37,6 +43,7 @@ export async function createPayment(db, salesOrderId, input) {
       referenceNumber: text(input.referenceNumber), notes: text(input.notes), createdBy: input.createdBy || null,
     };
     const result = await repository.createPayment(connection, payment);
+    await audit.recordAudit(connection, { entityType: 'PAYMENT', entityId: result.id, action: AUDIT.PAYMENT_CREATED, newData: result });
     if (client) await connection.query('COMMIT');
     return result;
   } catch (e) {

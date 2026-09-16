@@ -10,6 +10,7 @@ import workOrderRoutes from './modules/workOrders/workOrder.routes.js';
 import productionBoardRoutes from './modules/workOrders/productionBoard.routes.js';
 import packingRoutes from './modules/packing/packing.routes.js';
 import handoverRoutes from './modules/handovers/handover.routes.js';
+import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/health', async (_request, response) => {
   response.status(healthy ? 200 : 503).json({ status: healthy ? 'ok' : 'degraded', service: 'erp-art33-api', database, timestamp: new Date().toISOString() });
 });
 
+app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);
 app.use('/api/v1/sales-orders', salesOrderRoutes);

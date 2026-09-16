@@ -21,37 +21,29 @@ export async function createPayment(db, salesOrderId, input) {
   const paymentDate = text(input.paymentDate) || new Date().toISOString().slice(0, 10);
   if (!validDate(paymentDate)) throw error('VALIDATION_ERROR', 'Payment date must use YYYY-MM-DD.');
 
-  const client = typeof db.connect === 'function' ? await db.connect() : null;
-  const connection = client || db;
-  try {
-    if (client) await connection.query('BEGIN');
-    const context = await repository.getPaymentContextForUpdate(connection, salesOrderId);
-    if (!context) throw error('NOT_FOUND', 'Sales order not found.');
-    if (marketplaceAutoPay && context.orderType !== 'MARKETPLACE') throw error('VALIDATION_ERROR', 'Marketplace auto-payment is only valid for marketplace orders.');
-    if (context.orderType === 'MARKETPLACE' && !marketplaceAutoPay) throw error('VALIDATION_ERROR', 'Marketplace orders are automatically paid.');
+  // createPayment may be called inside an existing sales-order transaction.
+  // Reuse that transaction client instead of opening a nested connection/transaction.
+  const connection = db;
+  const context = await repository.getPaymentContextForUpdate(connection, salesOrderId);
+  if (!context) throw error('NOT_FOUND', 'Sales order not found.');
+  if (marketplaceAutoPay && context.orderType !== 'MARKETPLACE') throw error('VALIDATION_ERROR', 'Marketplace auto-payment is only valid for marketplace orders.');
+  if (context.orderType === 'MARKETPLACE' && !marketplaceAutoPay) throw error('VALIDATION_ERROR', 'Marketplace orders are automatically paid.');
 
-    const grandTotal = Number(context.grandTotal || 0);
-    const totalPaid = Number(context.totalPaid || 0);
-    if (grandTotal <= 0) throw error('CONFLICT', 'Sales order has no payable balance.');
-    const balance = Math.max(0, grandTotal - totalPaid);
-    if (balance <= 0) throw error('CONFLICT', 'Sales order is already fully paid.');
-    if (amount > balance + 0.000001) throw error('VALIDATION_ERROR', 'Payment amount cannot exceed the remaining balance.');
+  const grandTotal = Number(context.grandTotal || 0);
+  const totalPaid = Number(context.totalPaid || 0);
+  if (grandTotal <= 0) throw error('CONFLICT', 'Sales order has no payable balance.');
+  const balance = Math.max(0, grandTotal - totalPaid);
+  if (balance <= 0) throw error('CONFLICT', 'Sales order is already fully paid.');
+  if (amount > balance + 0.000001) throw error('VALIDATION_ERROR', 'Payment amount cannot exceed the remaining balance.');
 
-    const payment = {
-      paymentNumber: await repository.nextPaymentNumber(connection), salesOrderId, amount,
-      paymentMethod, paymentDate,
-      referenceNumber: text(input.referenceNumber), notes: text(input.notes), createdBy: input.createdBy || null,
-    };
-    const result = await repository.createPayment(connection, payment);
-    await audit.recordAudit(connection, { entityType: 'PAYMENT', entityId: result.id, action: AUDIT.PAYMENT_CREATED, newData: result });
-    if (client) await connection.query('COMMIT');
-    return result;
-  } catch (e) {
-    if (client) await connection.query('ROLLBACK');
-    throw e;
-  } finally {
-    if (client) client.release();
-  }
+  const payment = {
+    paymentNumber: await repository.nextPaymentNumber(connection), salesOrderId, amount,
+    paymentMethod, paymentDate,
+    referenceNumber: text(input.referenceNumber), notes: text(input.notes), createdBy: input.createdBy || null,
+  };
+  const result = await repository.createPayment(connection, payment);
+  await audit.recordAudit(connection, { entityType: 'PAYMENT', entityId: result.id, action: AUDIT.PAYMENT_CREATED, newData: result });
+  return result;
 }
 
 export async function listPayments(db, salesOrderId) {

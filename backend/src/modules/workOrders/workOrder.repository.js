@@ -41,6 +41,10 @@ export async function listBySalesOrder(db, salesOrderId) {
   return rows;
 }
 
+export async function deactivateBySalesOrderItem(db, salesOrderItemId) {
+  await db.query(`UPDATE work_orders SET status = 'INACTIVE', updated_at = NOW() WHERE sales_order_item_id = $1 AND status <> 'INACTIVE'`, [salesOrderItemId]);
+}
+
 export async function deactivateActiveBySalesOrder(db, salesOrderId) {
   const { rows } = await db.query(`UPDATE work_orders SET status = 'INACTIVE', updated_at = NOW() WHERE sales_order_id = $1 AND status <> 'INACTIVE' RETURNING id`, [salesOrderId]);
   return rows.length;

@@ -42,7 +42,10 @@ export function validateAndNormalizeItems(salesOrderId, items) {
 
 export async function validateAndCreateItems(db, salesOrderId, items) {
   const normalized = validateAndNormalizeItems(salesOrderId, items);
-  return Promise.all(normalized.map((item) => repository.createItem(db, item)));
+  await Promise.all(normalized.map((item) => repository.createItem(db, item)));
+  // Re-read through the canonical list query so callers receive the same camelCase shape,
+  // including itemTotal, rather than PostgreSQL's raw RETURNING column names.
+  return repository.listItems(db, salesOrderId);
 }
 
 export async function listItems(db, salesOrderId) { return repository.listItems(db, salesOrderId); }

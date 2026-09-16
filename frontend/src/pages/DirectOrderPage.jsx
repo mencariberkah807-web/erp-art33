@@ -4,9 +4,8 @@ import EntityFormModal from '../components/EntityFormModal.jsx';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
-const emptyCustomer = () => ({ customerCode: '', name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
+const emptyCustomer = () => ({ name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
 const CUSTOMER_FIELDS = [
-  { name: 'customerCode', label: 'Customer Code', required: true },
   { name: 'name', label: 'Name', required: true },
   { name: 'company', label: 'Company' },
   { name: 'mobile', label: 'Mobile' },
@@ -67,38 +66,18 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   function addPayment() { setPayments((current) => [...current, emptyPayment()]); }
   function removePayment(index) { setPayments((current) => current.length > 1 ? current.filter((_, i) => i !== index) : current); }
 
-  function openCustomerModal() {
-    setCustomerForm(emptyCustomer());
-    setCustomerError('');
-    setCustomerModalOpen(true);
-  }
-
-  function updateCustomerField(name, value) {
-    setCustomerForm((current) => ({ ...current, [name]: value }));
-  }
+  function openCustomerModal() { setCustomerForm(emptyCustomer()); setCustomerError(''); setCustomerModalOpen(true); }
+  function updateCustomerField(name, value) { setCustomerForm((current) => ({ ...current, [name]: value })); }
 
   async function createCustomer(event) {
-    event.preventDefault();
-    setCustomerSubmitting(true);
-    setCustomerError('');
+    event.preventDefault(); setCustomerSubmitting(true); setCustomerError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/customers`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(customerForm),
-      });
+      const response = await fetch(`${API_BASE_URL}/api/v1/customers`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(customerForm) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message || 'Unable to create customer.');
       const customer = payload.data;
-      setCustomers((current) => [customer, ...current]);
-      setCustomerId(customer.id);
-      setCustomerModalOpen(false);
-      setCustomerForm(emptyCustomer());
-    } catch (e) {
-      setCustomerError(e.message);
-    } finally {
-      setCustomerSubmitting(false);
-    }
+      setCustomers((current) => [customer, ...current]); setCustomerId(customer.id); setCustomerModalOpen(false); setCustomerForm(emptyCustomer());
+    } catch (e) { setCustomerError(e.message); } finally { setCustomerSubmitting(false); }
   }
 
   async function submit(event) {

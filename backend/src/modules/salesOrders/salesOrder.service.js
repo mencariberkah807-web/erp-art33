@@ -39,10 +39,32 @@ export async function getSalesOrder(pool, id) { return repository.findSalesOrder
 export async function getSalesOrderDetail(pool, id) { return detailRepository.findDetail(pool, id); }
 export async function createSalesOrder(pool, input) {
   const order = validate(input); if (!Array.isArray(input.items) || input.items.length < 1) throw error('VALIDATION_ERROR', 'At least one sales order item is required.'); const db = await pool.connect();
-  try { await db.query('BEGIN'); order.soNumber = await repository.nextSalesOrderNumber(db); const salesOrder = await repository.createSalesOrder(db, order); const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items); let payment = null; let workOrders = [];
-    if (order.orderType === 'MARKETPLACE') { const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0); payment = await paymentService.createPayment(db, salesOrder.id, { amount: grandTotal, paymentMethod: 'MARKETPLACE', paymentDate: order.orderDate, referenceNumber: order.trackingNumber, notes: 'Marketplace order auto-paid.' }); for (const item of items) { const woNumber = await workOrderRepository.nextWorkOrderNumber(db); const workOrder = await workOrderRepository.createWorkOrder(db, { woNumber, salesOrderId: salesOrder.id, salesOrderItemId: item.id, status: 'READY_FOR_PRODUCTION' }); const source = await workOrderCreationRepository.createSnapshotSource(db, salesOrder.id, item.id); if (!source) throw error('VALIDATION_ERROR', 'Unable to build work order production snapshot.'); const snapshot = await workOrderSnapshotRepository.createSnapshot(db, { workOrderId: workOrder.id, customerName: source.customer_name, productName: source.product_name, quantity: source.quantity, material: source.material, specification: source.specification, dimension: source.dimension, color: source.color, thickness: source.thickness, productionNotes: source.production_notes, artworkFileUrl: source.artwork_file_url, artworkDriveUrl: source.artwork_drive_url }); workOrders.push({ ...workOrder, snapshot }); } }
-    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrder.id, action: AUDIT.SALES_ORDER_CREATED, newData: { ...salesOrder, items, payment, workOrders } });
-    await db.query('COMMIT'); return { ...salesOrder, items, payment, workOrders };
+  try { await db.query('BEGIN'); order.soNumber = await repository.nextSalesOrderNumber(db); const salesOrder = await repository.createSalesOrder(db, order); const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items); let payment = null; let payments = []; let workOrders = [];
+    if (order.orderType === 'DIRECT') {
+      const requestedPayments = Array.isArray(input.payments) ? input.payments : [];
+      const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0);
+      const requestedTotal = requestedPayments.reduce((sum, entry) => {
+        const amount = Number(entry?.amount || 0);
+        if (!Number.isFinite(amount) || amount < 0) throw error('VALIDATION_ERROR', 'Payment amount must be zero or greater.');
+        return sum + amount;
+      }, 0);
+      if (requestedTotal > grandTotal + 0.000001) throw error('VALIDATION_ERROR', 'Total payment cannot exceed the sales order grand total.');
+      for (const entry of requestedPayments) {
+        const amount = Number(entry?.amount || 0);
+        if (amount <= 0) continue;
+        payments.push(await paymentService.createPayment(db, salesOrder.id, {
+          amount,
+          paymentMethod: entry.paymentMethod,
+          paymentDate: entry.paymentDate || order.orderDate,
+          referenceNumber: entry.referenceNumber,
+          notes: entry.notes,
+        }));
+      }
+      payment = payments[0] || null;
+    }
+    if (order.orderType === 'MARKETPLACE') { const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0); payment = await paymentService.createPayment(db, salesOrder.id, { amount: grandTotal, paymentMethod: 'MARKETPLACE', paymentDate: order.orderDate, referenceNumber: order.trackingNumber, notes: 'Marketplace order auto-paid.' }); payments = [payment]; for (const item of items) { const woNumber = await workOrderRepository.nextWorkOrderNumber(db); const workOrder = await workOrderRepository.createWorkOrder(db, { woNumber, salesOrderId: salesOrder.id, salesOrderItemId: item.id, status: 'READY_FOR_PRODUCTION' }); const source = await workOrderCreationRepository.createSnapshotSource(db, salesOrder.id, item.id); if (!source) throw error('VALIDATION_ERROR', 'Unable to build work order production snapshot.'); const snapshot = await workOrderSnapshotRepository.createSnapshot(db, { workOrderId: workOrder.id, customerName: source.customer_name, productName: source.product_name, quantity: source.quantity, material: source.material, specification: source.specification, dimension: source.dimension, color: source.color, thickness: source.thickness, productionNotes: source.production_notes, artworkFileUrl: source.artwork_file_url, artworkDriveUrl: source.artwork_drive_url }); workOrders.push({ ...workOrder, snapshot }); } }
+    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrder.id, action: AUDIT.SALES_ORDER_CREATED, newData: { ...salesOrder, items, payment, payments, workOrders } });
+    await db.query('COMMIT'); return { ...salesOrder, items, payment, payments, workOrders };
   } catch (e) { await db.query('ROLLBACK'); if (e.code === '23505') throw error('CONFLICT', 'Sales order, payment, work order, or snapshot already exists.'); if (e.code === '23503') throw error('VALIDATION_ERROR', 'Customer or product reference does not exist.'); throw e; } finally { db.release(); }
 }
 

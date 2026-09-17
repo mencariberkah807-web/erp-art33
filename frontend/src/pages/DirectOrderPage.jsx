@@ -3,6 +3,7 @@ import EntityFormModal from '../components/EntityFormModal.jsx';
 import '../new-order-reference.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
+const marketplaces = [['SHOPEE', 'Shopee'], ['TOKOPEDIA', 'Tokopedia'], ['TIKTOK_SHOP', 'TikTok Shop'], ['LAZADA', 'Lazada'], ['BLIBLI', 'Blibli'], ['OTHER', 'Other']];
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
 const emptyCustomer = () => ({ name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
@@ -22,10 +23,13 @@ const PRODUCT_FIELDS = [
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
 function paymentTotal(payments) { return payments.reduce((sum, payment) => sum + Math.max(0, Number(payment.amount || 0)), 0); }
 
-export default function DirectOrderPage({ onCancel, onCreated }) {
+export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCreated }) {
+  const isMarketplace = orderType === 'MARKETPLACE';
   const [customers, setCustomers] = useState([]);
   const [products, setProducts] = useState([]);
   const [customerId, setCustomerId] = useState('');
+  const [marketplace, setMarketplace] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
   const [customerModalOpen, setCustomerModalOpen] = useState(false);
   const [customerForm, setCustomerForm] = useState(emptyCustomer());
   const [customerSubmitting, setCustomerSubmitting] = useState(false);
@@ -74,7 +78,6 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
   function updatePayment(index, key, value) { setPayments((current) => current.map((payment, i) => i === index ? { ...payment, [key]: value } : payment)); }
   function addPayment() { setPayments((current) => [...current, emptyPayment()]); }
   function removePayment(index) { setPayments((current) => current.length > 1 ? current.filter((_, i) => i !== index) : current); }
-
   function openCustomerModal() { setCustomerForm(emptyCustomer()); setCustomerError(''); setCustomerModalOpen(true); }
   function updateCustomerField(name, value) { setCustomerForm((current) => ({ ...current, [name]: value })); }
   function openProductModal() { setProductForm(emptyProduct()); setProductError(''); setProductModalOpen(true); }
@@ -106,7 +109,9 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
 
   async function submit(event) {
     event.preventDefault(); setError('');
-    if (!customerId) return setError('Customer is required.');
+    if (!isMarketplace && !customerId) return setError('Customer is required.');
+    if (isMarketplace && !marketplace) return setError('Marketplace is required.');
+    if (isMarketplace && !trackingNumber.trim()) return setError('Tracking number is required.');
     if (!deadline) return setError('Deadline is required.');
     if (deadline < orderDate) return setError('Deadline must be on or after order date.');
     if (!items.length || items.some((item) => !item.productId || Number(item.quantity) < 1)) return setError('At least one valid product item is required.');
@@ -115,7 +120,14 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
     if (payments.some((payment) => Number(payment.amount || 0) > 0 && !payment.paymentMethod)) return setError('Payment method is required for every payment.');
     setSaving(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/sales-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ orderType: 'DIRECT', customerId, orderDate, deadline, priority, items, payments: payments.filter((payment) => Number(payment.amount || 0) > 0) }) });
+      const payload = { orderType, customerId: customerId || null, orderDate, deadline, priority, items };
+      if (isMarketplace) {
+        payload.marketplace = marketplace;
+        payload.trackingNumber = trackingNumber.trim();
+      } else {
+        payload.payments = payments.filter((payment) => Number(payment.amount || 0) > 0);
+      }
+      const response = await fetch(`${API_BASE_URL}/api/v1/sales-orders`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
       const body = await response.json();
       if (!response.ok) throw new Error(body?.error?.message || 'Unable to create sales order.');
       onCreated(body.data);
@@ -124,6 +136,20 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
 
   return <section className="page-section new-order-reference-form">
     <form onSubmit={submit}>
+      {isMarketplace && <section className="form-card reference-card marketplace-inline-card">
+        <div className="section-heading"><div><h2>Marketplace Information</h2><p>Tracking and marketplace channel for this order.</p></div></div>
+        <div className="marketplace-layout">
+          <div className="marketplace-left">
+            <label className="form-field"><span>No. Resi *</span><input value={trackingNumber} onChange={(e) => setTrackingNumber(e.target.value)} placeholder="Tracking number" /></label>
+            <label className="form-field"><span>Customer</span><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Optional</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select></label>
+          </div>
+          <div className="marketplace-right">
+            <span className="marketplace-channel-label">Marketplace Channel *</span>
+            <div className="radio-row marketplace-channel-radios">{marketplaces.map(([value, label]) => <label className="radio" key={value}><input type="radio" name="marketplace-channel" value={value} checked={marketplace === value} onChange={() => setMarketplace(value)} /><span>{label}</span></label>)}</div>
+          </div>
+        </div>
+      </section>}
+
       <div className="reference-two-column">
         <section className="form-card reference-card">
           <div className="section-heading"><div><h2>Order Information</h2><p>Transaction identity and delivery deadline.</p></div></div>
@@ -133,7 +159,7 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
             <label className="form-field reference-priority"><span>Priority *</span><select value={priority} onChange={(e) => setPriority(e.target.value)}><option value="REGULAR">Regular</option><option value="SAME_DAY">Same Day</option><option value="INSTANT">Instant</option></select></label>
           </div>
         </section>
-        <section className="form-card reference-card">
+        {!isMarketplace && <section className="form-card reference-card">
           <div className="section-heading"><div><h2>Customer Information</h2><p>Customer master information.</p></div><button className="primary-button" type="button" onClick={openCustomerModal}>+ Add Customer</button></div>
           <div className="reference-customer-grid">
             <label className="form-field reference-full"><span>Customer *</span><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Select customer...</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select></label>
@@ -141,11 +167,11 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
             <label className="form-field"><span>Email</span><input value={selectedCustomer?.email || ''} readOnly /></label>
             <label className="form-field reference-full"><span>Address</span><textarea value={selectedCustomer?.address || ''} readOnly rows="2" /></label>
           </div>
-        </section>
+        </section>}
       </div>
 
       <section className="form-card reference-card">
-        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div>
+        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><div className="section-heading-actions"><button className="secondary-button" type="button" onClick={openProductModal}>+ Add Product</button><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div></div>
         <div className="reference-items">
           {items.map((item, index) => {
             const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0);
@@ -161,25 +187,13 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
                   <div className="discount-field"><span>Discount</span><div><input type="number" min="0" step="0.01" max={item.discountType === 'PERCENTAGE' ? 100 : undefined} value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /><select aria-label="Discount type" value={item.discountType} onChange={(e) => updateItem(index, 'discountType', e.target.value)}><option value="NOMINAL">Rp</option><option value="PERCENTAGE">%</option></select></div></div>
                 </div>
                 <div className="reference-product-info">
-                  {['SKU','Material','Category','Thickness','Dimension','Color','Specification'].map((label) => {
-                    const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', Specification: 'specification' }[label];
-                    return <div key={label}><span>{label}</span><strong>{product?.[key] || '—'}</strong></div>;
-                  })}
+                  {['SKU','Material','Category','Thickness','Dimension','Color','Specification'].map((label) => { const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', Specification: 'specification' }[label]; return <div key={label}><span>{label}</span><strong>{product?.[key] || '—'}</strong></div>; })}
                 </div>
               </div>
               <div className="reference-item-total"><span>Item Total</span><strong>{money(itemTotal)}</strong></div>
-              <div className="reference-item-options">
-                <label className="checkbox-field"><input type="checkbox" checked={item.isCustom} onChange={(e) => updateItem(index, 'isCustom', e.target.checked)} /><span>Custom / Special Request</span></label>
-                {items.length > 1 && <button className="text-danger" type="button" onClick={() => removeItem(index)}>Remove</button>}
-              </div>
+              <div className="reference-item-options"><label className="checkbox-field"><input type="checkbox" checked={item.isCustom} onChange={(e) => updateItem(index, 'isCustom', e.target.checked)} /><span>Custom / Special Request</span></label>{items.length > 1 && <button className="text-danger" type="button" onClick={() => removeItem(index)}>Remove</button>}</div>
               {item.isCustom && <div className="custom-notes-field"><label className="form-field reference-full"><span>Special Request / Production Notes</span><textarea rows="2" value={item.productionNotes} onChange={(e) => updateItem(index, 'productionNotes', e.target.value)} placeholder="Admin input for custom / special request..." /></label></div>}
-              <div className="reference-item-attachment">
-                <div className="reference-artwork-preview">{item.artworkFileUrl ? <img src={item.artworkFileUrl} alt="Artwork preview" /> : <span>Artwork Preview</span>}</div>
-                <div className="reference-attachment-fields">
-                  <label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={(e) => updateItem(index, 'artworkFileUrl', e.target.value)} placeholder="File / preview URL" /></label>
-                  <label className="form-field"><span>Google Drive / Artwork Link</span><input value={item.artworkDriveUrl} onChange={(e) => updateItem(index, 'artworkDriveUrl', e.target.value)} placeholder="Drive URL" /></label>
-                </div>
-              </div>
+              <div className="reference-item-attachment"><div className="reference-artwork-preview">{item.artworkFileUrl ? <img src={item.artworkFileUrl} alt="Artwork preview" /> : <span>Artwork Preview</span>}</div><div className="reference-attachment-fields"><label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={(e) => updateItem(index, 'artworkFileUrl', e.target.value)} placeholder="File / preview URL" /></label><label className="form-field"><span>Google Drive / Artwork Link</span><input value={item.artworkDriveUrl} onChange={(e) => updateItem(index, 'artworkDriveUrl', e.target.value)} placeholder="Drive URL" /></label></div></div>
             </div>;
           })}
         </div>
@@ -187,30 +201,17 @@ export default function DirectOrderPage({ onCancel, onCreated }) {
 
       <div className="reference-summary-card"><div><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div><div><span>Discount</span><strong>{money(totals.discount)}</strong></div><div className="grand-total"><span>Grand Total</span><strong>{money(totals.total)}</strong></div></div>
 
-      <section className="form-card reference-card">
+      {!isMarketplace && <section className="form-card reference-card">
         <div className="section-heading"><div><h2>Payment</h2><p>Record payments inline. Additional payments can be added before creating the order.</p></div><button className="primary-button" type="button" onClick={addPayment}>+ Add Payment</button></div>
-        <div className="reference-payment-grid">
-          <div className="reference-payment-summary">
-            {payments.map((payment, index) => <div className="reference-payment-row" key={index}>
-              <label className="form-field"><span>Amount</span><input type="number" min="0" step="1" value={payment.amount} onChange={(e) => updatePayment(index, 'amount', e.target.value)} max={Math.max(0, totals.total - totalPaid + Number(payment.amount || 0))} /></label>
-              <label className="form-field"><span>Payment Method</span><select value={payment.paymentMethod} onChange={(e) => updatePayment(index, 'paymentMethod', e.target.value)}><option value="Cash">Cash</option><option value="Transfer">Transfer</option><option value="QRIS">QRIS</option></select></label>
-              <label className="form-field"><span>Payment Date</span><input type="date" value={payment.paymentDate} onChange={(e) => updatePayment(index, 'paymentDate', e.target.value)} /></label>
-              <label className="form-field"><span>Reference Number</span><input value={payment.referenceNumber} onChange={(e) => updatePayment(index, 'referenceNumber', e.target.value)} /></label>
-              {payments.length > 1 && <button className="text-danger reference-payment-remove" type="button" onClick={() => removePayment(index)}>Remove</button>}
-            </div>)}
-            <div className="reference-summary-card compact"><div><span>Grand Total</span><strong>{money(totals.total)}</strong></div><div><span>Amount Paid</span><strong>{money(totalPaid)}</strong></div><div className="grand-total"><span>Balance</span><strong>{money(balance)}</strong></div></div>
-          </div>
-          <div className="reference-payment-method">
-            <strong>Payment Method</strong>
-            <p>Cash, Transfer, or QRIS</p>
-            <span className="reference-payment-status-label">Payment Status</span>
-            <strong>{totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong>
-          </div>
-        </div>
-      </section>
+        <div className="reference-payment-grid"><div className="reference-payment-summary">
+          {payments.map((payment, index) => <div className="reference-payment-row" key={index}><label className="form-field"><span>Amount</span><input type="number" min="0" step="1" value={payment.amount} onChange={(e) => updatePayment(index, 'amount', e.target.value)} max={Math.max(0, totals.total - totalPaid + Number(payment.amount || 0))} /></label><label className="form-field"><span>Payment Method</span><select value={payment.paymentMethod} onChange={(e) => updatePayment(index, 'paymentMethod', e.target.value)}><option value="Cash">Cash</option><option value="Transfer">Transfer</option><option value="QRIS">QRIS</option></select></label><label className="form-field"><span>Payment Date</span><input type="date" value={payment.paymentDate} onChange={(e) => updatePayment(index, 'paymentDate', e.target.value)} /></label><label className="form-field"><span>Reference Number</span><input value={payment.referenceNumber} onChange={(e) => updatePayment(index, 'referenceNumber', e.target.value)} /></label>{payments.length > 1 && <button className="text-danger reference-payment-remove" type="button" onClick={() => removePayment(index)}>Remove</button>}</div>)}
+          <div className="reference-summary-card compact"><div><span>Grand Total</span><strong>{money(totals.total)}</strong></div><div><span>Amount Paid</span><strong>{money(totalPaid)}</strong></div><div className="grand-total"><span>Balance</span><strong>{money(balance)}</strong></div></div>
+        </div><div className="reference-payment-method"><strong>Payment Method</strong><p>Cash, Transfer, or QRIS</p><span className="reference-payment-status-label">Payment Status</span><strong>{totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong></div></div>
+      </section>}
 
+      {isMarketplace && <div className="form-note">Marketplace payment status: <strong>PAID</strong> · payment is recorded automatically when the order is created.</div>}
       {error && <div className="form-error">{error}</div>}
-      <div className="reference-footer-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : 'Create Order'}</button></div>
+      <div className="reference-footer-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : isMarketplace ? 'Create WO' : 'Create Order'}</button></div>
     </form>
     {customerModalOpen && <EntityFormModal title="Add Customer" description="Create a customer master record and use it immediately in this order." fields={CUSTOMER_FIELDS} values={customerForm} onChange={updateCustomerField} onSubmit={createCustomer} onClose={() => !customerSubmitting && setCustomerModalOpen(false)} submitting={customerSubmitting} error={customerError} />}
     {productModalOpen && <EntityFormModal title="Add Product" description="Create a product master record and use it immediately in this order." fields={PRODUCT_FIELDS} values={productForm} onChange={updateProductField} onSubmit={createProduct} onClose={() => !productSubmitting && setProductModalOpen(false)} submitting={productSubmitting} error={productError} />}

@@ -3,15 +3,35 @@ import DirectOrderPage from './DirectOrderPage.jsx';
 import MarketplaceOrderPage from './MarketplaceOrderPage.jsx';
 
 export default function NewOrderPage({ onSelect, onCancel }) {
-  const [view, setView] = useState('gate');
-  if (view === 'direct') return <DirectOrderPage onCancel={() => setView('gate')} onCreated={() => onSelect('CREATED')} />;
-  if (view === 'marketplace') return <MarketplaceOrderPage onCancel={() => setView('gate')} onCreated={() => onSelect('CREATED')} />;
-  return <section className="page-section">
-    <div className="page-header"><div><p className="eyebrow">SALES / NEW ORDER</p><h1>New Order</h1><p className="page-description">Choose the order channel before entering the transaction.</p></div></div>
-    <div className="order-gate-grid">
-      <button className="order-gate-card" type="button" onClick={() => { setView('direct'); onSelect('DIRECT'); }}><span className="gate-kicker">DIRECT</span><strong>Direct Order</strong><span>Create a customer order with customer and payment information.</span></button>
-      <button className="order-gate-card" type="button" onClick={() => { setView('marketplace'); onSelect('MARKETPLACE'); }}><span className="gate-kicker">MARKETPLACE</span><strong>Marketplace Order</strong><span>Create an order from Shopee, Tokopedia, TikTok Shop, Lazada, Blibli, or Other.</span></button>
+  const [orderType, setOrderType] = useState('DIRECT');
+
+  function handleCreated(data) {
+    onSelect('CREATED', data);
+  }
+
+  return <section className="new-order-page">
+    <div className="new-order-header">
+      <div>
+        <p className="eyebrow">SALES / NEW ORDER</p>
+        <h1>New Order</h1>
+        <p className="page-description">Create a Direct Order or Marketplace Order without leaving this page.</p>
+      </div>
+      <div className="new-order-type" role="radiogroup" aria-label="Order type">
+        <label className={orderType === 'DIRECT' ? 'active' : ''}>
+          <input type="radio" name="new-order-type" value="DIRECT" checked={orderType === 'DIRECT'} onChange={() => setOrderType('DIRECT')} />
+          <span>Direct Order</span>
+        </label>
+        <label className={orderType === 'MARKETPLACE' ? 'active' : ''}>
+          <input type="radio" name="new-order-type" value="MARKETPLACE" checked={orderType === 'MARKETPLACE'} onChange={() => setOrderType('MARKETPLACE')} />
+          <span>Marketplace</span>
+        </label>
+      </div>
     </div>
-    <div className="form-actions"><button className="secondary-button" type="button" onClick={onCancel}>Cancel</button></div>
+
+    <div className="new-order-form-pane">
+      {orderType === 'DIRECT'
+        ? <DirectOrderPage embedded onCancel={onCancel} onCreated={handleCreated} />
+        : <MarketplaceOrderPage embedded onCancel={onCancel} onCreated={handleCreated} />}
+    </div>
   </section>;
 }

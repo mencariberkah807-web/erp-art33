@@ -6,13 +6,12 @@
 .sales-orders-list{min-width:0;padding:24px;border-right:1px solid #e5e7eb;overflow:auto}
 .sales-orders-workspace:not(.has-detail) .sales-orders-list{border-right:0}
 .sales-orders-list .page-header{margin-bottom:16px}
-.sales-order-detail-panel{min-width:0;background:#fff;height:calc(100vh - 76px);position:sticky;top:0;overflow:auto}
+.sales-order-detail-panel{min-width:0;background:#fff;height:calc(100vh - 76px);position:sticky;top:0;overflow:auto;border-left:1px solid #e5e7eb}
 .sales-order-detail-panel>.detail-page{max-width:none;margin:0}
 .sales-order-detail-panel>.detail-page .page-header{position:sticky;top:0;z-index:10;border:0;border-bottom:1px solid #e5e7eb;border-radius:0;box-shadow:none;margin:0;padding:16px 18px;background:rgba(255,255,255,.97)}
 .sales-order-detail-panel>.detail-page .page-header h1{font-size:18px}
 .sales-order-detail-panel>.detail-page .page-header p:not(.eyebrow){font-size:11px;margin-top:4px}
-.sales-order-detail-panel>.detail-page .page-actions{gap:5px}
-.sales-order-detail-panel>.detail-page .page-actions .button{min-height:32px;padding:6px 9px;font-size:10px}
+.sales-order-detail-panel>.detail-page .page-actions{display:none!important}
 .sales-order-detail-panel>.detail-page>.detail-card-grid,.sales-order-detail-panel>.detail-page>.detail-card{margin-left:14px;margin-right:14px}
 .sales-order-detail-panel>.detail-page>.detail-card-grid{grid-template-columns:1fr;gap:10px;margin-bottom:10px}
 .sales-order-detail-panel>.detail-page>.detail-card{padding:13px;margin-bottom:10px;border-radius:8px;box-shadow:none}
@@ -38,7 +37,6 @@
 
 /* SO DETAIL — exact panel composition from the approved HTML reference. */
 .sales-orders-workspace.has-detail{grid-template-columns:minmax(520px,1fr) 500px}
-.sales-order-detail-panel{border-left:1px solid #e5e7eb}
 .sales-order-detail-panel>.so-detail-reference{display:flex;flex-direction:column;min-height:100%;background:#fff}
 .sales-order-detail-panel>.so-detail-reference .so-reference-header{position:sticky;top:0;z-index:5;display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:18px 20px 16px;background:rgba(255,255,255,.97);border-bottom:1px solid #e5e7eb}
 .so-reference-number{font-size:18px;font-weight:800;color:#1f2937}
@@ -77,6 +75,10 @@
 .so-reference-actions-right{margin-left:auto;display:flex;align-items:center;gap:7px}
 .so-reference-actions .button{min-height:32px;padding:8px 11px;font-size:10px}
 .so-reference-error{margin:10px 16px 0}
+
+/* The approved detail reference does not show fulfillment/work-order cards here;
+   those modules remain available from their dedicated pages and footer actions. */
+.sales-order-detail-panel>.so-detail-reference .so-reference-body>.so-reference-section:nth-last-child(-n+2){display:none}
 
 @media(max-width:1050px){.sales-orders-workspace,.sales-orders-workspace.has-detail{grid-template-columns:1fr;min-height:auto;margin:0}.sales-order-detail-panel{position:relative;height:auto;min-height:600px;border-top:1px solid #e5e7eb}.sales-orders-list{border-right:0;padding:18px}.sales-order-detail-panel>.detail-page>.detail-card-grid,.sales-order-detail-panel>.detail-page>.detail-card{margin-left:14px;margin-right:14px}}
 @media(max-width:900px){.detail-card-grid{grid-template-columns:1fr}.so-item-detail-meta{grid-template-columns:repeat(4,minmax(0,1fr))}.new-order-header{align-items:flex-start;flex-direction:column}.so-reference-item-info{grid-template-columns:repeat(4,minmax(0,1fr))}}

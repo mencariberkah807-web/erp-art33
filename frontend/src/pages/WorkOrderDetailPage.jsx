@@ -3,94 +3,23 @@ import React, { useCallback, useEffect, useState } from 'react';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const STATUS_LABELS = { READY_FOR_PRODUCTION: 'Ready Production', IN_PRODUCTION: 'In Production', COMPLETED_PRODUCTION: 'Completed Production', INACTIVE: 'Inactive' };
 const PROCESS_TYPES = [['LASER_CUTTING', 'Laser Cutting'], ['UV_PRINTING', 'UV Printing'], ['ASSEMBLY', 'Assembly'], ['LASER_MARKING', 'Laser Marking'], ['FINISHING', 'Finishing']];
-
 function formatDate(value) { if (!value) return '—'; const date = new Date(value); if (Number.isNaN(date.getTime())) return String(value); return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date); }
 
 export default function WorkOrderDetailPage({ workOrderId, onBack }) {
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [working, setWorking] = useState(false);
-  const [eventForm, setEventForm] = useState({ processType: 'LASER_CUTTING', status: 'START', notes: '' });
-  const [eventSaving, setEventSaving] = useState(false);
-
-  const load = useCallback(async () => {
-    setLoading(true); setError('');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}`);
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error?.message || 'Unable to load work order.');
-      setOrder(body.data);
-    } catch (e) { setError(e.message); } finally { setLoading(false); }
-  }, [workOrderId]);
-
+  const [order, setOrder] = useState(null); const [loading, setLoading] = useState(true); const [error, setError] = useState(''); const [working, setWorking] = useState(false); const [eventForm, setEventForm] = useState({ processType: 'LASER_CUTTING', status: 'START', notes: '' }); const [eventSaving, setEventSaving] = useState(false);
+  const load = useCallback(async () => { setLoading(true); setError(''); try { const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}`); const body = await response.json(); if (!response.ok) throw new Error(body?.error?.message || 'Unable to load work order.'); setOrder(body.data); } catch (e) { setError(e.message); } finally { setLoading(false); } }, [workOrderId]);
   useEffect(() => { load(); }, [load]);
-
-  async function changeStatus(action, label) {
-    if (working) return;
-    setWorking(true); setError('');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error?.message || `Unable to ${label.toLowerCase()} work order.`);
-      setOrder(body.data); await load();
-    } catch (e) { setError(e.message); } finally { setWorking(false); }
-  }
-
-  async function addProductionEvent(event) {
-    event.preventDefault(); if (!order || order.status !== 'IN_PRODUCTION') return;
-    setEventSaving(true); setError('');
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}/production-events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eventForm) });
-      const body = await response.json();
-      if (!response.ok) throw new Error(body?.error?.message || 'Unable to record production event.');
-      setEventForm({ processType: 'LASER_CUTTING', status: 'START', notes: '' }); await load();
-    } catch (e) { setError(e.message); } finally { setEventSaving(false); }
-  }
-
+  async function changeStatus(action, label) { if (working) return; setWorking(true); setError(''); try { const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }); const body = await response.json(); if (!response.ok) throw new Error(body?.error?.message || `Unable to ${label.toLowerCase()} work order.`); setOrder(body.data); await load(); } catch (e) { setError(e.message); } finally { setWorking(false); } }
+  async function addProductionEvent(event) { event.preventDefault(); if (!order || order.status !== 'IN_PRODUCTION') return; setEventSaving(true); setError(''); try { const response = await fetch(`${API_BASE_URL}/api/v1/work-orders/${workOrderId}/production-events`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(eventForm) }); const body = await response.json(); if (!response.ok) throw new Error(body?.error?.message || 'Unable to record production event.'); setEventForm({ processType: 'LASER_CUTTING', status: 'START', notes: '' }); await load(); } catch (e) { setError(e.message); } finally { setEventSaving(false); } }
   if (loading) return <section className="state-card">Loading work order...</section>;
   if (error && !order) return <section className="detail-page"><div className="alert error">{error}</div><button className="button secondary" type="button" onClick={onBack}>Back</button></section>;
   if (!order) return <section className="detail-page"><div className="alert error">Work order not found.</div><button className="button secondary" type="button" onClick={onBack}>Back</button></section>;
-
-  const canStart = order.status === 'READY_FOR_PRODUCTION';
-  const canComplete = order.status === 'IN_PRODUCTION';
-  const events = order.productionEvents || [];
-
+  const canStart = order.status === 'READY_FOR_PRODUCTION'; const canComplete = order.status === 'IN_PRODUCTION'; const events = order.productionEvents || [];
   return <section className="detail-page">
-    <div className="page-header">
-      <div><p className="eyebrow">PRODUCTION / WORK ORDER</p><h1>{order.woNumber}</h1><p>{order.salesOrderNumber || order.salesOrderId}</p></div>
-      <div className="page-actions">
-        <button className="button secondary" type="button" onClick={onBack}>Back</button>
-        {canStart && <button className="button primary" type="button" onClick={() => changeStatus('start', 'Start Production')} disabled={working}>{working ? 'Starting...' : 'Start Production'}</button>}
-        {canComplete && <button className="button primary" type="button" onClick={() => changeStatus('complete', 'Complete Production')} disabled={working}>{working ? 'Completing...' : 'Complete Production'}</button>}
-        <button className="button secondary" type="button" onClick={() => window.print()}>Print</button>
-      </div>
-    </div>
+    <div className="page-header"><div><p className="eyebrow">PRODUCTION / WORK ORDER</p><h1>{order.woNumber}</h1><p>Sales Order <strong>{order.salesOrderNumber || order.salesOrderId}</strong> · {order.customerName || 'Marketplace'}</p></div><div className="page-actions"><button className="button secondary" type="button" onClick={onBack}>Back</button>{canStart && <button className="button primary" type="button" onClick={() => changeStatus('start', 'Start Production')} disabled={working}>{working ? 'Starting...' : 'Start Production'}</button>}{canComplete && <button className="button primary" type="button" onClick={() => changeStatus('complete', 'Complete Production')} disabled={working}>{working ? 'Completing...' : 'Complete Production'}</button>}<button className="button secondary" type="button" onClick={() => window.print()}>Print</button></div></div>
     {error && <div className="error-banner"><span>{error}</span><button type="button" onClick={load}>Retry</button></div>}
-
-    <div className="detail-card-grid">
-      <section className="detail-card"><h2>Work Order Info</h2><div className="detail-grid">
-        <div><span>WO Number</span><strong>{order.woNumber}</strong></div><div><span>Status</span><strong>{STATUS_LABELS[order.status] || order.status}</strong></div>
-        <div><span>Sales Order</span><strong>{order.salesOrderNumber || order.salesOrderId}</strong></div><div><span>Customer</span><strong>{order.customerName || 'Marketplace'}</strong></div>
-        <div><span>Product</span><strong>{order.productName}</strong></div><div><span>Quantity</span><strong>{order.quantity}</strong></div>
-        <div><span>Created</span><strong>{formatDate(order.createdAt)}</strong></div><div><span>Started</span><strong>{formatDate(order.startedAt)}</strong></div>
-        <div><span>Completed</span><strong>{formatDate(order.completedAt)}</strong></div>
-      </div></section>
-      <section className="detail-card"><h2>Material & Specification</h2><div className="detail-grid">
-        <div><span>Material</span><strong>{order.material || '—'}</strong></div><div><span>Color</span><strong>{order.color || '—'}</strong></div>
-        <div><span>Thickness</span><strong>{order.thickness || '—'}</strong></div><div><span>Dimension</span><strong>{order.dimension || '—'}</strong></div>
-      </div></section>
-    </div>
-
-    <div className="detail-card-grid">
-      <section className="detail-card"><h2>Specification</h2><p>{order.specification || '—'}</p><h2>Production Notes</h2><p>{order.productionNotes || '—'}</p></section>
-      <section className="detail-card"><h2>Artwork</h2><p>{order.artworkFileUrl || order.artworkDriveUrl ? 'Artwork reference available.' : 'No artwork reference.'}</p></section>
-    </div>
-
-    <section className="detail-card"><div className="section-heading"><h2>Production Timeline</h2><span>{events.length} event{events.length === 1 ? '' : 's'}</span></div>
-      {events.length ? <ul className="timeline-list">{events.map((event) => <li key={event.id}><strong>{PROCESS_TYPES.find(([value]) => value === event.processType)?.[1] || event.processType}</strong><span>{event.status}</span>{event.notes && <small>{event.notes}</small>}</li>)}</ul> : <p>No production events yet.</p>}
-      {canStart && <p>Start Production to begin recording production events.</p>}
-      {canComplete && <form className="event-form" onSubmit={addProductionEvent}><h4>Record Production Event</h4><div className="form-grid"><label>Process<select value={eventForm.processType} onChange={(e) => setEventForm({ ...eventForm, processType: e.target.value })}>{PROCESS_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Status<select value={eventForm.status} onChange={(e) => setEventForm({ ...eventForm, status: e.target.value })}><option value="START">START</option><option value="IN_PROGRESS">IN PROGRESS</option><option value="DONE">DONE</option></select></label></div><label>Notes<textarea value={eventForm.notes} onChange={(e) => setEventForm({ ...eventForm, notes: e.target.value })} rows="3" placeholder="Optional production note..." /></label><button className="button primary" type="submit" disabled={eventSaving}>{eventSaving ? 'Recording...' : 'Record Event'}</button></form>}
-    </section>
+    <div className="detail-card-grid"><section className="detail-card"><h2>Work Order Information</h2><div className="detail-grid"><div><span>WO Number</span><strong>{order.woNumber}</strong></div><div><span>Status</span><strong>{STATUS_LABELS[order.status] || order.status}</strong></div><div><span>Sales Order</span><strong>{order.salesOrderNumber || order.salesOrderId}</strong></div><div><span>Customer</span><strong>{order.customerName || 'Marketplace'}</strong></div><div><span>Product</span><strong>{order.productName}</strong></div><div><span>Quantity</span><strong>{order.quantity}</strong></div><div><span>Created</span><strong>{formatDate(order.createdAt)}</strong></div><div><span>Started</span><strong>{formatDate(order.startedAt)}</strong></div><div><span>Completed</span><strong>{formatDate(order.completedAt)}</strong></div></div></section><section className="detail-card"><h2>Material & Specification</h2><div className="detail-grid"><div><span>Material</span><strong>{order.material || '—'}</strong></div><div><span>Color</span><strong>{order.color || '—'}</strong></div><div><span>Thickness</span><strong>{order.thickness || '—'}</strong></div><div><span>Dimension</span><strong>{order.dimension || '—'}</strong></div><div><span>Specification</span><strong>{order.specification || '—'}</strong></div></div></section></div>
+    <div className="detail-card-grid"><section className="detail-card"><div className="section-heading"><h2>Artwork & Production Notes</h2><span>{order.artworkFileUrl || order.artworkDriveUrl ? 'Reference available' : 'No attachment'}</span></div><div className="so-item-attachment"><div className="so-artwork-preview">{order.artworkFileUrl ? <img src={order.artworkFileUrl} alt="Work order artwork" /> : <span>No artwork preview</span>}</div><div className="so-attachment-info">{order.artworkDriveUrl ? <a className="so-attachment-link" href={order.artworkDriveUrl} target="_blank" rel="noreferrer">Open Google Drive artwork</a> : <span className="info-label">No Google Drive attachment</span>}<div className="so-production-note"><strong>Production Notes</strong><br />{order.productionNotes || 'No production notes.'}</div></div></div></section><section className="detail-card"><h2>Production Summary</h2><div className="detail-grid"><div><span>Process Events</span><strong>{events.length}</strong></div><div><span>Execution Model</span><strong>Non-sequential</strong></div><div><span>Next Action</span><strong>{canStart ? 'Start Production' : canComplete ? 'Record Events / Complete Production' : order.status === 'COMPLETED_PRODUCTION' ? 'Production Completed' : '—'}</strong></div></div></section></div>
+    <section className="detail-card"><div className="section-heading"><div><h2>Production Timeline</h2><p>Record actual production activity without forcing a sequence.</p></div><span>{events.length} event{events.length === 1 ? '' : 's'}</span></div>{events.length ? <ul className="timeline-list">{events.map(event => <li key={event.id}><strong>{PROCESS_TYPES.find(([value]) => value === event.processType)?.[1] || event.processType}</strong><span>{event.status}</span>{event.notes && <small>{event.notes}</small>}</li>)}</ul> : <p>No production events yet.</p>}{canStart && <p className="detail-helper">Start Production to begin recording production events.</p>}{canComplete && <form className="event-form" onSubmit={addProductionEvent}><h4>Record Production Event</h4><div className="form-grid"><label>Process<select value={eventForm.processType} onChange={e => setEventForm({ ...eventForm, processType: e.target.value })}>{PROCESS_TYPES.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label><label>Status<select value={eventForm.status} onChange={e => setEventForm({ ...eventForm, status: e.target.value })}><option value="START">START</option><option value="IN_PROGRESS">IN PROGRESS</option><option value="DONE">DONE</option></select></label></div><label>Notes<textarea value={eventForm.notes} onChange={e => setEventForm({ ...eventForm, notes: e.target.value })} rows="3" placeholder="Optional production note..." /></label><button className="button primary" type="submit" disabled={eventSaving}>{eventSaving ? 'Recording...' : 'Record Event'}</button></form>}</section>
   </section>;
 }

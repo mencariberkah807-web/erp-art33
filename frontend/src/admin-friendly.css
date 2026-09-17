@@ -80,6 +80,29 @@
    those modules remain available from their dedicated pages and footer actions. */
 .sales-order-detail-panel>.so-detail-reference .so-reference-body>.so-reference-section:nth-last-child(-n+2){display:none}
 
+/* SALES ORDERS — clean hierarchy: the global topbar owns the page title. */
+.sales-orders-toolbar-head{display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-bottom:12px;min-height:34px}
+.sales-orders-count-label{margin-right:auto;color:#667085;font-size:11px;font-weight:600}
+.sales-orders-filterbar{margin-bottom:12px}
+.sales-orders-list .search-input,.sales-orders-list .filter-select{font-size:12px}
+.sales-orders-list .data-table th{font-size:9px;letter-spacing:.04em}
+.sales-orders-list .data-table td{font-size:11.5px}
+.sales-orders-list .data-table td strong{font-size:11.5px}
+.sales-orders-list .status-badge{font-size:9px}
+.sales-orders-list .table-card{border-radius:9px}
+.sales-orders-list .list-footer{font-size:10.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-header{padding:16px 18px 14px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-number{font-size:18px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-customer{font-size:12px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-context{font-size:10.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section-head{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section-body{font-size:11px}
+.sales-order-detail-panel>.so-detail-reference .so-info-label{font-size:9px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section strong{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-title>strong{font-size:12px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-info strong{font-size:10.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-info .so-info-label{font-size:8.5px}
+
 @media(max-width:1050px){.sales-orders-workspace,.sales-orders-workspace.has-detail{grid-template-columns:1fr;min-height:auto;margin:0}.sales-order-detail-panel{position:relative;height:auto;min-height:600px;border-top:1px solid #e5e7eb}.sales-orders-list{border-right:0;padding:18px}.sales-order-detail-panel>.detail-page>.detail-card-grid,.sales-order-detail-panel>.detail-page>.detail-card{margin-left:14px;margin-right:14px}}
 @media(max-width:900px){.detail-card-grid{grid-template-columns:1fr}.so-item-detail-meta{grid-template-columns:repeat(4,minmax(0,1fr))}.new-order-header{align-items:flex-start;flex-direction:column}.so-reference-item-info{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:650px){.sales-orders-workspace{margin:-18px -18px -30px}.sales-orders-list{padding:18px}.sales-order-detail-panel>.detail-page .page-header{position:relative}.sales-order-detail-panel>.detail-page .detail-grid{grid-template-columns:1fr}.so-item-attachment{grid-template-columns:1fr}.so-artwork-preview{height:150px}.so-item-detail-meta{grid-template-columns:repeat(2,minmax(0,1fr))}.detail-page .page-header{position:relative}.detail-page .page-actions{justify-content:flex-start}.new-order-header{position:relative}.so-grid-2,.so-payment-grid,.so-reference-attachment{grid-template-columns:1fr}.so-reference-item-info{grid-template-columns:repeat(2,minmax(0,1fr))}.so-reference-artwork{height:150px}.so-reference-actions{align-items:flex-start;flex-direction:column}.so-reference-actions-right{margin-left:0;flex-wrap:wrap}}

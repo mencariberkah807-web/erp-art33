@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import EntityFormModal from '../components/EntityFormModal.jsx';
+import '../new-order-reference.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4000';
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });

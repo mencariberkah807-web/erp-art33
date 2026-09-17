@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import DirectOrderPage from './DirectOrderPage.jsx';
-import MarketplaceOrderPage from './MarketplaceOrderPage.jsx';
 
 export default function NewOrderPage({ onSelect, onCancel }) {
   const [orderType, setOrderType] = useState('DIRECT');
@@ -33,9 +32,7 @@ export default function NewOrderPage({ onSelect, onCancel }) {
     </section>
 
     <div className="new-order-form-pane">
-      {orderType === 'DIRECT'
-        ? <DirectOrderPage embedded onCancel={onCancel} onCreated={handleCreated} />
-        : <MarketplaceOrderPage embedded onCancel={onCancel} onCreated={handleCreated} />}
+      <DirectOrderPage orderType={orderType} onCancel={onCancel} onCreated={handleCreated} />
     </div>
   </section>;
 }

@@ -62,15 +62,14 @@ export default function SalesOrdersPage({ onNewOrder, selectedOrderId, onSelectO
       {error && <div className="error-banner"><span>{error}</span><button type="button" onClick={loadOrders}>Retry</button></div>}
       <div className="table-card">
         {loading ? <div className="state-panel">Loading sales orders...</div> : orders.length === 0 ? <div className="state-panel"><strong>No sales orders yet.</strong><span>Create the first order to begin the sales workflow.</span></div> : <table className="data-table">
-          <thead><tr><th>SO Number</th><th>Type</th><th>Order Date</th><th>Deadline</th><th>Priority</th><th>Status</th><th></th></tr></thead>
+          <thead><tr><th>SO NUMBER</th><th>DATE</th><th>CUSTOMER</th><th>PRODUCT</th><th>PRIORITY</th><th>STATUS</th></tr></thead>
           <tbody>{orders.map((order) => <tr key={order.id} onClick={() => selectOrder(order.id)} className={`clickable-row ${selectedOrderId === order.id ? 'selected' : ''}`}>
             <td><strong>{order.soNumber}</strong></td>
-            <td>{order.orderType}</td>
             <td>{formatDate(order.orderDate)}</td>
-            <td>{formatDate(order.deadline)}</td>
+            <td>{order.customerName || (order.orderType === 'MARKETPLACE' ? 'Marketplace' : '—')}</td>
+            <td>{order.productName || '—'}</td>
             <td>{order.priority.replaceAll('_', ' ')}</td>
             <td><span className={`status-badge ${order.status.toLowerCase()}`}>{order.status.replaceAll('_', ' ')}</span></td>
-            <td><button className="button secondary small" type="button" onClick={(e) => { e.stopPropagation(); selectOrder(order.id); }}>View</button></td>
           </tr>)}</tbody>
         </table>}
       </div>

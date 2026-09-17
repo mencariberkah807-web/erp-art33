@@ -15,26 +15,38 @@ const FIELDS = `
 
 export async function listSalesOrders(pool, { page, pageSize, search, status }) {
   const values = []; const conditions = [];
-  if (search) { values.push(`%${search}%`); conditions.push(`(so_number ILIKE $${values.length} OR tracking_number ILIKE $${values.length})`); }
-  if (status) { values.push(status); conditions.push(`status = $${values.length}`); }
+  if (search) { values.push(`%${search}%`); conditions.push(`(so.so_number ILIKE $${values.length} OR so.tracking_number ILIKE $${values.length})`); }
+  if (status) { values.push(status); conditions.push(`so.status = $${values.length}`); }
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-  const count = await pool.query(`SELECT COUNT(*)::int AS total FROM sales_orders ${where}`, values);
+  const count = await pool.query(`SELECT COUNT(*)::int AS total FROM sales_orders so ${where}`, values);
   const offset = (page - 1) * pageSize; values.push(pageSize, offset);
   const result = await pool.query(
-    `SELECT so.${FIELDS.replaceAll('\n', '\n  so.')},
-            CASE WHEN c.company IS NOT NULL AND c.company <> '' THEN c.name || ' — ' || c.company ELSE c.name END AS "customerName",
-            COALESCE(items.product_name, '—') AS "productName"
-       FROM sales_orders so
-       LEFT JOIN customers c ON c.id = so.customer_id
-       LEFT JOIN LATERAL (
-         SELECT string_agg(p.name, ' + ' ORDER BY soi.item_number) AS product_name
-           FROM sales_order_items soi
-           JOIN products p ON p.id = soi.product_id
-          WHERE soi.sales_order_id = so.id AND soi.status = 'ACTIVE'
-       ) items ON TRUE
-       ${where}
-      ORDER BY so.created_at DESC
-      LIMIT $${values.length - 1} OFFSET $${values.length}`,
+    `SELECT
+       so.id,
+       so.so_number AS "soNumber",
+       so.order_type AS "orderType",
+       so.customer_id AS "customerId",
+       so.marketplace,
+       so.tracking_number AS "trackingNumber",
+       so.order_date AS "orderDate",
+       so.deadline,
+       so.priority,
+       so.status,
+       so.created_at AS "createdAt",
+       so.updated_at AS "updatedAt",
+       CASE WHEN c.company IS NOT NULL AND c.company <> '' THEN c.name || ' — ' || c.company ELSE c.name END AS "customerName",
+       COALESCE(items.product_name, '—') AS "productName"
+     FROM sales_orders so
+     LEFT JOIN customers c ON c.id = so.customer_id
+     LEFT JOIN LATERAL (
+       SELECT string_agg(p.name, ' + ' ORDER BY soi.item_number) AS product_name
+       FROM sales_order_items soi
+       JOIN products p ON p.id = soi.product_id
+       WHERE soi.sales_order_id = so.id AND soi.status = 'ACTIVE'
+     ) items ON TRUE
+     ${where}
+     ORDER BY so.created_at DESC
+     LIMIT $${values.length - 1} OFFSET $${values.length}`,
     values,
   );
   return { rows: result.rows, total: count.rows[0].total };

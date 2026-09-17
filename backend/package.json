@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "node scripts/dev-db.mjs && node --watch src/server.js",
     "start": "node src/server.js",
+    "migrate": "node scripts/migrate.mjs",
+    "build": "npm run migrate",
     "test": "node --test"
   },
   "dependencies": {

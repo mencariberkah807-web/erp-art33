@@ -1,0 +1,41 @@
+/* ARTKRILIK ERP V3 — Admin readable typography
+   Presentation only. No business logic or behavior changes. */
+
+/* Sales Orders list */
+.sales-orders-list .sales-orders-toolbar-head,
+.sales-orders-list .sales-orders-count-label{font-size:13px}
+.sales-orders-list .search-input,
+.sales-orders-list .filter-select{font-size:14px;min-height:40px}
+.sales-orders-list .data-table th{font-size:11px;letter-spacing:.04em;font-weight:700}
+.sales-orders-list .data-table td{font-size:13px}
+.sales-orders-list .data-table td strong{font-size:13px}
+.sales-orders-list .status-badge{font-size:10px;padding:4px 7px}
+.sales-orders-list .list-footer{font-size:12px}
+
+/* SO detail panel */
+.sales-order-detail-panel>.so-detail-reference .so-reference-number{font-size:20px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-customer{font-size:13px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-context{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section-head{font-size:12.5px;padding:11px 13px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section-body{font-size:12px;padding:13px}
+.sales-order-detail-panel>.so-detail-reference .so-info-label{font-size:10px;margin-bottom:5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-section strong{font-size:12.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item{padding:12px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-title>strong{font-size:13px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-title>span{font-size:10px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-info{gap:9px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-info .so-info-label{font-size:9px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-item-info strong{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-artwork{font-size:11px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-attachment-info>a{font-size:11px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-notes{font-size:12px}
+.sales-order-detail-panel>.so-detail-reference .so-payment-status>strong{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-amount{font-size:12.5px!important}
+.sales-order-detail-panel>.so-detail-reference .timeline-list li{font-size:11.5px}
+.sales-order-detail-panel>.so-detail-reference .so-reference-actions .button{font-size:11.5px;min-height:34px;padding:8px 12px}
+
+/* Keep the compact right panel readable without changing its 500px width. */
+@media(max-width:900px){
+  .sales-orders-list .data-table th{font-size:10px}
+  .sales-orders-list .data-table td,.sales-orders-list .data-table td strong{font-size:12.5px}
+}

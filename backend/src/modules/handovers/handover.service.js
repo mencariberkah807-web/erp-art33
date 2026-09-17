@@ -13,13 +13,11 @@ export async function listHandovers(pool) {
 export async function createHandover(pool, salesOrderId, data = {}) {
   const handoverType = String(data.handoverType || '').trim().toUpperCase();
   if (!['CUSTOMER_PICKUP', 'COURIER'].includes(handoverType)) throw error('VALIDATION_ERROR', 'Handover type must be CUSTOMER_PICKUP or COURIER.');
-  if (handoverType === 'CUSTOMER_PICKUP' && !String(data.recipientName || '').trim()) throw error('VALIDATION_ERROR', 'Recipient name is required for customer pickup.');
-  if (handoverType === 'COURIER' && !String(data.courierName || '').trim()) throw error('VALIDATION_ERROR', 'Courier name is required for courier handover.');
 
   const db = await pool.connect();
   try {
     await db.query('BEGIN');
-    const orderResult = await db.query(`SELECT id, so_number AS "soNumber", status, order_type AS "orderType" FROM sales_orders WHERE id = $1 FOR UPDATE`, [salesOrderId]);
+    const orderResult = await db.query(`SELECT so.id, so.so_number AS "soNumber", so.status, so.order_type AS "orderType", c.name AS "customerName" FROM sales_orders so LEFT JOIN customers c ON c.id = so.customer_id WHERE so.id = $1 FOR UPDATE`, [salesOrderId]);
     const order = orderResult.rows[0];
     if (!order) throw error('NOT_FOUND', 'Sales order not found.');
     if (order.status !== 'RTS') throw error('VALIDATION_ERROR', `Sales order cannot be handed over from ${order.status}.`);
@@ -30,12 +28,13 @@ export async function createHandover(pool, salesOrderId, data = {}) {
     const existing = await db.query(`SELECT id FROM handovers WHERE sales_order_id = $1 LIMIT 1`, [salesOrderId]);
     if (existing.rows[0]) throw error('CONFLICT', 'Sales order already has a handover record.');
 
-    const result = await repository.createHandover(db, { salesOrderId, handoverType, recipientName: data.recipientName, courierName: data.courierName, handoverAt: data.handoverAt, handedOverBy: data.handedOverBy, notes: data.notes });
+    const recipientName = handoverType === 'CUSTOMER_PICKUP' ? order.customerName : null;
+    const result = await repository.createHandover(db, { salesOrderId, handoverType, recipientName, courierName: null, handoverAt: data.handoverAt, handedOverBy: data.handedOverBy, notes: data.notes });
     if (!result) throw error('VALIDATION_ERROR', 'Handover creation failed.');
 
-    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrderId, action: AUDIT.HANDOVER_RECORDED, newData: { salesOrderId, soNumber: order.soNumber, handoverId: result.id, handoverType, completed: false } });
+    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrderId, action: AUDIT.HANDOVER_RECORDED, newData: { salesOrderId, soNumber: order.soNumber, handoverId: result.id, handoverType, recipientName, completed: false } });
     await db.query('COMMIT');
-    return { ...result, salesOrder: { id: order.id, soNumber: order.soNumber, status: order.status } };
+    return { ...result, salesOrder: { id: order.id, soNumber: order.soNumber, status: order.status, customerName: order.customerName } };
   } catch (e) { await db.query('ROLLBACK'); throw e; }
   finally { db.release(); }
 }

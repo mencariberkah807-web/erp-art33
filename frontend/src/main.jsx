@@ -13,6 +13,7 @@ import PackingPage from './pages/PackingPage.jsx';
 import HandoverPage from './pages/HandoverPage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
 import './styles.css';
+import './admin-friendly.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const navigation = [

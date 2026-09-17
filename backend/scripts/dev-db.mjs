@@ -134,7 +134,7 @@ async function main() {
   const status = spawnSync(pgCtl, ['-D', DB_DIR, 'status'], { stdio: 'ignore' });
   if (status.status !== 0) {
     console.log(`[dev-db] starting PostgreSQL on 127.0.0.1:${PORT}`);
-    run(pgCtl, ['-D', DB_DIR, '-l', DB_LOG, '-o', `-p ${PORT} -h 127.0.0.1`, 'start']);
+    run(pgCtl, ['-D', DB_DIR, '-l', DB_LOG, '-o', `-p ${PORT} -h 127.0.0.1 -k ${DB_DIR}`, 'start']);
   }
 
   await waitForDatabase();

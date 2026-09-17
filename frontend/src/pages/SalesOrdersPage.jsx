@@ -45,15 +45,11 @@ export default function SalesOrdersPage({ onNewOrder, selectedOrderId, onSelectO
 
   return <section className={`sales-orders-workspace${selectedOrderId ? ' has-detail' : ''}`}>
     <main className="sales-orders-list">
-      <div className="page-header">
-        <div>
-          <p className="eyebrow">SALES</p>
-          <h1>Sales Orders</h1>
-          <p className="page-description">Manage customer and marketplace orders through the approved order lifecycle.</p>
-        </div>
+      <div className="sales-orders-toolbar-head">
+        <span className="sales-orders-count-label">{meta.total} order{meta.total === 1 ? '' : 's'}</span>
         <button className="primary-button" type="button" onClick={onNewOrder}>+ New Order</button>
       </div>
-      <div className="toolbar">
+      <div className="toolbar sales-orders-filterbar">
         <input className="search-input" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search SO number or tracking number..." />
         <select className="filter-select" value={status} onChange={(e) => setStatus(e.target.value)}>
           {statuses.map((value) => <option key={value} value={value}>{value ? value.replaceAll('_', ' ') : 'All statuses'}</option>)}
@@ -61,7 +57,7 @@ export default function SalesOrdersPage({ onNewOrder, selectedOrderId, onSelectO
       </div>
       {error && <div className="error-banner"><span>{error}</span><button type="button" onClick={loadOrders}>Retry</button></div>}
       <div className="table-card">
-        {loading ? <div className="state-panel">Loading sales orders...</div> : orders.length === 0 ? <div className="state-panel"><strong>No sales orders yet.</strong><span>Create the first order to begin the sales workflow.</span></div> : <table className="data-table">
+        {loading ? <div className="state-panel">Loading orders...</div> : orders.length === 0 ? <div className="state-panel"><strong>No orders yet.</strong><span>Create the first order to begin the sales workflow.</span></div> : <table className="data-table">
           <thead><tr><th>SO NUMBER</th><th>DATE</th><th>CUSTOMER</th><th>PRODUCT</th><th>PRIORITY</th><th>STATUS</th></tr></thead>
           <tbody>{orders.map((order) => <tr key={order.id} onClick={() => selectOrder(order.id)} className={`clickable-row ${selectedOrderId === order.id ? 'selected' : ''}`}>
             <td><strong>{order.soNumber}</strong></td>

@@ -190,7 +190,7 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
 
 
       <section className="form-card reference-card">
-        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><div className="section-heading-actions"><button className="secondary-button" type="button" onClick={openProductModal}>+ Add Product</button><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div></div>
+        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div>
         <div className="reference-items">
           {items.map((item, index) => {
             const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0);

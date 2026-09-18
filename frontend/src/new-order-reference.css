@@ -111,3 +111,18 @@
   .new-order-page .new-order-type-card{flex-direction:column}
   .new-order-page .new-order-type-options{width:100%;justify-content:flex-start}
 }
+
+.new-order-reference-form .reference-order-grid{grid-template-columns:1fr 1fr 1fr 2.4fr}
+.new-order-reference-form .reference-priority{min-width:0}
+.new-order-reference-form .priority-radio-row{display:flex;align-items:center;gap:12px;min-height:32px;flex-wrap:wrap}
+.new-order-reference-form .priority-radio-row .radio{display:inline-flex;align-items:center;gap:5px;color:#344054;font-size:10px;font-weight:600;white-space:nowrap}
+.new-order-reference-form .priority-radio-row input{width:13px;height:13px;margin:0;accent-color:#2476ed}
+.new-order-reference-form .reference-product-control{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px;align-items:end;min-width:0}
+.new-order-reference-form .reference-product-control .add-product-inline{height:32px;min-height:32px;padding:5px 8px;font-size:9px;white-space:nowrap}
+.new-order-reference-form .payment-method-radio-field{min-width:0}
+.new-order-reference-form .payment-method-radios{display:flex;align-items:center;gap:8px;min-height:32px;flex-wrap:wrap}
+.new-order-reference-form .payment-method-radios .radio{display:inline-flex;align-items:center;gap:4px;color:#344054;font-size:9px;font-weight:600;white-space:nowrap}
+.new-order-reference-form .payment-method-radios input{width:13px;height:13px;margin:0;accent-color:#2476ed}
+@media(max-width:900px){
+  .new-order-reference-form .reference-order-grid{grid-template-columns:1fr 1fr}
+}

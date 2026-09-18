@@ -7,17 +7,35 @@ const marketplaces = [['SHOPEE', 'Shopee'], ['TOKOPEDIA', 'Tokopedia'], ['TIKTOK
 const emptyItem = () => ({ productId: '', quantity: 1, unitPrice: 0, discountType: 'NOMINAL', discountValue: 0, isCustom: false, productionNotes: '', artworkFileUrl: '', artworkDriveUrl: '' });
 const emptyPayment = () => ({ amount: '', paymentMethod: 'Cash', paymentDate: new Date().toISOString().slice(0, 10), referenceNumber: '', notes: '' });
 const emptyCustomer = () => ({ name: '', company: '', mobile: '', email: '', address: '', customerType: '', notes: '' });
-const emptyProduct = () => ({ name: '', category: '', material: '', thickness: '', dimension: '', color: '', specification: '', unit: '', standardPrice: '', description: '', imageUrl: '', status: 'ACTIVE' });
+const emptyProduct = () => ({ sku: '', name: '', category: '', material: '', thickness: '', lengthCm: '', widthCm: '', heightCm: '', color: '', specification: '', unit: '', initialStock: '', standardPurchasePrice: '', standardPrice: '', description: '', imageUrl: '', status: 'ACTIVE' });
 const CUSTOMER_FIELDS = [
   { name: 'name', label: 'Name', required: true }, { name: 'company', label: 'Company' }, { name: 'mobile', label: 'Mobile' },
   { name: 'email', label: 'Email', type: 'email' }, { name: 'customerType', label: 'Customer Type', type: 'select', options: [{ value: 'Individual', label: 'Individual' }, { value: 'Company', label: 'Company' }, { value: 'Other', label: 'Other' }] },
   { name: 'address', label: 'Address', fullWidth: true }, { name: 'notes', label: 'Notes', type: 'textarea', fullWidth: true },
 ];
 const PRODUCT_FIELDS = [
-  { name: 'name', label: 'Name', required: true }, { name: 'category', label: 'Category' }, { name: 'material', label: 'Material' },
-  { name: 'thickness', label: 'Thickness' }, { name: 'dimension', label: 'Dimension' }, { name: 'color', label: 'Color' }, { name: 'unit', label: 'Unit', required: true },
-  { name: 'standardPrice', label: 'Standard Price', type: 'number', min: '0', step: '0.01', required: true },
-  { name: 'specification', label: 'Specification', fullWidth: true }, { name: 'imageUrl', label: 'Image URL', fullWidth: true }, { name: 'description', label: 'Description', type: 'textarea', fullWidth: true },
+  { name: 'identity-section', label: 'Product', type: 'section' },
+  { name: 'sku', label: 'SKU', required: true, help: 'Example: NB6060, TCA5L' },
+  { name: 'name', label: 'Product Name', required: true },
+  { name: 'category', label: 'Category' },
+  { name: 'unit', label: 'Unit', required: true },
+  { name: 'material-section', label: 'Material', type: 'section' },
+  { name: 'material', label: 'Material' },
+  { name: 'color', label: 'Color' },
+  { name: 'thickness', label: 'Thickness (mm)' },
+  { name: 'dimension-section', label: 'Dimension (cm)', type: 'section', help: 'Height is optional.' },
+  { name: 'lengthCm', label: 'Length (L)', type: 'number', min: '0', step: '0.01' },
+  { name: 'widthCm', label: 'Width (W)', type: 'number', min: '0', step: '0.01' },
+  { name: 'heightCm', label: 'Height (H)', type: 'number', min: '0', step: '0.01' },
+  { name: 'stock-section', label: 'Stock', type: 'section', help: 'Opening balance only.' },
+  { name: 'initialStock', label: 'Initial Stock', type: 'number', min: '0', step: '0.01' },
+  { name: 'pricing-section', label: 'Pricing', type: 'section' },
+  { name: 'standardPurchasePrice', label: 'Standard Purchase Price', type: 'number', min: '0', step: '0.01' },
+  { name: 'standardPrice', label: 'Standard Selling Price', type: 'number', min: '0', step: '0.01', required: true },
+  { name: 'specification', label: 'Specification', fullWidth: true },
+  { name: 'imageUrl', label: 'Image URL', fullWidth: true },
+  { name: 'description', label: 'Description', type: 'textarea', fullWidth: true },
+  { name: 'status', label: 'Status', type: 'select', options: [{ value: 'ACTIVE', label: 'Active' }, { value: 'INACTIVE', label: 'Inactive' }] },
 ];
 
 function money(value) { return Number(value || 0).toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }); }
@@ -100,7 +118,7 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
   async function createProduct(event) {
     event.preventDefault(); setProductSubmitting(true); setProductError('');
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...productForm, standardPrice: Number(productForm.standardPrice) }) });
+      const response = await fetch(`${API_BASE_URL}/api/v1/products`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...productForm, lengthCm: productForm.lengthCm === '' ? null : Number(productForm.lengthCm), widthCm: productForm.widthCm === '' ? null : Number(productForm.widthCm), heightCm: productForm.heightCm === '' ? null : Number(productForm.heightCm), initialStock: productForm.initialStock === '' ? 0 : Number(productForm.initialStock), standardPurchasePrice: productForm.standardPurchasePrice === '' ? 0 : Number(productForm.standardPurchasePrice), standardPrice: Number(productForm.standardPrice) }) });
       const payload = await response.json();
       if (!response.ok) throw new Error(payload?.error?.message || 'Unable to create product.');
       const product = payload.data;

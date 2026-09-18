@@ -5,6 +5,9 @@ const PRODUCT_FIELDS = `
   category,
   material,
   thickness,
+  length_cm AS "lengthCm",
+  width_cm AS "widthCm",
+  height_cm AS "heightCm",
   dimension,
   color,
   specification,
@@ -55,15 +58,19 @@ export async function findProductById(pool, id) {
 export async function createProduct(pool, product) {
   const result = await pool.query(
     `INSERT INTO products (
-      name, category, material, thickness, dimension, color,
+      sku, name, category, material, thickness, length_cm, width_cm, height_cm, dimension, color,
       specification, unit, standard_price, description, image_url, status
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
     RETURNING ${PRODUCT_FIELDS}`,
     [
+      product.sku,
       product.name,
       product.category,
       product.material,
       product.thickness,
+      product.lengthCm,
+      product.widthCm,
+      product.heightCm,
       product.dimension,
       product.color,
       product.specification,

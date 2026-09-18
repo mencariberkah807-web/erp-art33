@@ -116,7 +116,6 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
     const amount = Number(paymentForm.amount || 0);
     if (!Number.isFinite(amount) || amount <= 0) return setPaymentError('Payment amount must be greater than zero.');
     if (amount > balance + 0.000001) return setPaymentError('Payment amount cannot exceed Balance.');
-    if (!paymentForm.paymentMethod) return setPaymentError('Payment method is required.');
     setPayments((current) => [...current, { ...paymentForm, amount: String(amount) }]);
     setPaymentModalOpen(false); setPaymentForm(emptyPayment());
   }
@@ -196,7 +195,8 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
             <div className="payment-reference-status"><span>Payment Status</span><strong>{totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong></div>
           </div>
         </div>
-      </section>}
+      </section>
+
       {isMarketplace && <div className="form-note">Marketplace payment status: <strong>PAID</strong> · payment is recorded automatically when the order is created.</div>}
       {error && <div className="form-error">{error}</div>}
       <div className="reference-footer-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : isMarketplace ? 'Create WO' : 'Create Order'}</button></div>

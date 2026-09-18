@@ -39,7 +39,7 @@ export async function getSalesOrder(pool, id) { return repository.findSalesOrder
 export async function getSalesOrderDetail(pool, id) { return detailRepository.findDetail(pool, id); }
 export async function createSalesOrder(pool, input) {
   const order = validate(input); if (!Array.isArray(input.items) || input.items.length < 1) throw error('VALIDATION_ERROR', 'At least one sales order item is required.'); const db = await pool.connect();
-  try { await db.query('BEGIN'); order.soNumber = await repository.nextSalesOrderNumber(db); const salesOrder = await repository.createSalesOrder(db, order); const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items); let payment = null; let payments = []; let workOrders = [];
+  try { await db.query('BEGIN'); order.soNumber = await repository.nextSalesOrderNumber(db, order.orderDate); const salesOrder = await repository.createSalesOrder(db, order); const items = await itemService.validateAndCreateItems(db, salesOrder.id, input.items); let payment = null; let payments = []; let workOrders = [];
     if (order.orderType === 'DIRECT') {
       const requestedPayments = Array.isArray(input.payments) ? input.payments : [];
       const grandTotal = items.reduce((sum, item) => sum + Number(item.itemTotal || 0), 0);

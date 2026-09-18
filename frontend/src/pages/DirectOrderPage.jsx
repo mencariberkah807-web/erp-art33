@@ -188,6 +188,36 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
         </section>}
       </div>
 
+
+      <section className="form-card reference-card">
+        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><div className="section-heading-actions"><button className="secondary-button" type="button" onClick={openProductModal}>+ Add Product</button><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div></div>
+        <div className="reference-items">
+          {items.map((item, index) => {
+            const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0);
+            const discount = item.discountType === 'PERCENTAGE' ? gross * Number(item.discountValue || 0) / 100 : Number(item.discountValue || 0);
+            const itemTotal = Math.max(0, gross - discount);
+            const product = products.find((p) => p.id === item.productId);
+            return <div className="reference-item" key={index}>
+              <div className="reference-item-main">
+                <div className="reference-item-fields">
+                  <label className="form-field reference-product"><span>Product *</span><select value={item.productId} onChange={(e) => selectProduct(index, e.target.value)} disabled={loadingMaster}><option value="">Select product...</option>{products.map((p) => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}</select></label>
+                  <label className="form-field"><span>Qty *</span><input type="number" min="1" step="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} /></label>
+                  <label className="form-field"><span>Unit Price *</span><input type="number" min="0" step="1" value={item.unitPrice} onChange={(e) => updateItem(index, 'unitPrice', e.target.value)} /></label>
+                  <div className="discount-field"><span>Discount</span><div><input type="number" min="0" step="0.01" max={item.discountType === 'PERCENTAGE' ? 100 : undefined} value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /><select aria-label="Discount type" value={item.discountType} onChange={(e) => updateItem(index, 'discountType', e.target.value)}><option value="NOMINAL">Rp</option><option value="PERCENTAGE">%</option></select></div></div>
+                </div>
+                <div className="reference-product-info">
+                  {['SKU','Material','Category','Thickness','Dimension','Color','Specification'].map((label) => { const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', Specification: 'specification' }[label]; return <div key={label}><span>{label}</span><strong>{product?.[key] || '—'}</strong></div>; })}
+                </div>
+              </div>
+              <div className="reference-item-total"><span>Item Total</span><strong>{money(itemTotal)}</strong></div>
+              <div className="reference-item-options"><label className="checkbox-field"><input type="checkbox" checked={item.isCustom} onChange={(e) => updateItem(index, 'isCustom', e.target.checked)} /><span>Custom / Special Request</span></label>{items.length > 1 && <button className="text-danger" type="button" onClick={() => removeItem(index)}>Remove</button>}</div>
+              {item.isCustom && <div className="custom-notes-field"><label className="form-field reference-full"><span>Special Request / Production Notes</span><textarea rows="2" value={item.productionNotes} onChange={(e) => updateItem(index, 'productionNotes', e.target.value)} placeholder="Admin input for custom / special request..." /></label></div>}
+              <div className="reference-item-attachment"><div className="reference-artwork-preview">{item.artworkFileUrl ? <img src={item.artworkFileUrl} alt="Artwork preview" /> : <span>Artwork Preview</span>}</div><div className="reference-attachment-fields"><label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={(e) => updateItem(index, 'artworkFileUrl', e.target.value)} placeholder="File / preview URL" /></label><label className="form-field"><span>Google Drive / Artwork Link</span><input value={item.artworkDriveUrl} onChange={(e) => updateItem(index, 'artworkDriveUrl', e.target.value)} placeholder="Drive URL" /></label></div></div>
+            </div>;
+          })}
+        </div>
+      </section>
+
 {!isMarketplace && <section className="form-card reference-card payment-reference-card">
         <div className="section-heading"><div><h2>Payment</h2></div><button className="primary-button" type="button" onClick={() => { setPaymentForm(emptyPayment()); setPaymentError(''); setPaymentModalOpen(true); }}>+ Add Payment</button></div>
         <div className="payment-reference-body">

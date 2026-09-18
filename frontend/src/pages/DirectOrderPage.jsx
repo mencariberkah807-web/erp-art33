@@ -251,7 +251,7 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
         <div className="modal-header"><div><p className="eyebrow">PAYMENT</p><h2 id="payment-entry-title">Add Payment</h2><p>Record a payment against this sales order.</p></div></div>
         <form onSubmit={savePayment}>
           <div className="form-grid">
-            <label className="form-field"><span>Amount *</span><input type="number" min="0.01" step="1" value={paymentForm.amount} onChange={(e) => updatePaymentForm('amount', e.target.value)} autoFocus /></label>
+            <label className="form-field"><span>Amount *</span><input type="number" min="0.01" step="0.01" value={paymentForm.amount} onChange={(e) => updatePaymentForm('amount', e.target.value)} autoFocus /></label>
             <div className="form-field"><span>Payment Method *</span><div className="payment-entry-methods">{['Cash','Transfer','QRIS'].map((method) => <label className="payment-method-option" key={method}><input type="radio" name="payment-entry-method" value={method} checked={paymentForm.paymentMethod === method} onChange={() => updatePaymentForm('paymentMethod', method)} /><span>{method}</span></label>)}</div></div>
             <label className="form-field"><span>Payment Date</span><input type="date" value={paymentForm.paymentDate} onChange={(e) => updatePaymentForm('paymentDate', e.target.value)} /></label>
             <label className="form-field"><span>Reference Number</span><input value={paymentForm.referenceNumber} onChange={(e) => updatePaymentForm('referenceNumber', e.target.value)} /></label>

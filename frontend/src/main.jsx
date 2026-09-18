@@ -33,6 +33,15 @@ const navigation = [
     ],
   },
   {
+    label: 'Production',
+    key: 'production',
+    children: [
+      { label: 'Work Order', key: 'work-orders', kind: 'page' },
+      { label: 'Packing', key: 'packing', kind: 'page' },
+      { label: 'Delivery', key: 'delivery', kind: 'page' },
+    ],
+  },
+  {
     label: 'Pembelian',
     key: 'purchases',
     children: [
@@ -66,6 +75,7 @@ const navigation = [
 
 const initialExpanded = {
   sales: true,
+  production: true,
   purchases: true,
   'products-stock': true,
   others: true,
@@ -161,6 +171,12 @@ function App() {
       navigate('Customers');
     } else if (item.key === 'products') {
       navigate('Products');
+    } else if (item.key === 'work-orders') {
+      navigate('Work Orders');
+    } else if (item.key === 'packing') {
+      navigate('Packing');
+    } else if (item.key === 'delivery') {
+      navigate('Handover');
     }
   }
 
@@ -187,6 +203,9 @@ function App() {
     if (item.kind === 'new-order') return isSalesOrders && salesView === 'new';
     if (item.key === 'customers') return isCustomers;
     if (item.key === 'products') return isProducts;
+    if (item.key === 'work-orders') return isWorkOrders;
+    if (item.key === 'packing') return isPacking;
+    if (item.key === 'delivery') return isHandover;
     return futurePage === item.label;
   }
 

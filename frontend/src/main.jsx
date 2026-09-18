@@ -17,17 +17,321 @@ import './admin-friendly.css';
 import './status-badges.css';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
+
 const navigation = [
-  { label: 'Dashboard', group: 'CORE' }, { label: 'Sales Orders', group: 'SALES' }, { label: 'Customers', group: 'MASTER DATA' }, { label: 'Products', group: 'MASTER DATA' }, { label: 'Work Orders', group: 'PRODUCTION' }, { label: 'Production', group: 'PRODUCTION' }, { label: 'Packing', group: 'FULFILLMENT' }, { label: 'Handover', group: 'FULFILLMENT' }, { label: 'Payments', group: 'FINANCE' },
+  { label: 'Dashboard', key: 'dashboard', kind: 'page' },
+  { label: 'Customer', key: 'customers', kind: 'page' },
+  {
+    label: 'Penjualan',
+    key: 'sales',
+    children: [
+      { label: 'New Order', key: 'new-order', kind: 'new-order' },
+      { label: 'Invoice Uang Muka', key: 'invoice-down-payment', kind: 'future' },
+      { label: 'Invoice Penjualan', key: 'sales-invoice', kind: 'future' },
+      { label: 'Kuitansi Penjualan', key: 'sales-receipt', kind: 'future' },
+      { label: 'Surat Jalan', key: 'delivery-note', kind: 'future' },
+    ],
+  },
+  {
+    label: 'Pembelian',
+    key: 'purchases',
+    children: [
+      { label: 'Purchase Order', key: 'purchase-order', kind: 'future' },
+      { label: 'Penerimaan Barang', key: 'goods-receipt', kind: 'future' },
+      { label: 'Supplier', key: 'supplier', kind: 'future' },
+    ],
+  },
+  { label: 'Pembayaran Digital', key: 'digital-payment', kind: 'future' },
+  {
+    label: 'Produk & Stok',
+    key: 'products-stock',
+    children: [
+      { label: 'Produk', key: 'products', kind: 'page' },
+      { label: 'Stok', key: 'stock', kind: 'future' },
+      { label: 'Stock Adjustment', key: 'stock-adjustment', kind: 'future' },
+    ],
+  },
+  {
+    label: 'Lainnya',
+    key: 'others',
+    children: [
+      { label: 'Biaya', key: 'expenses', kind: 'future' },
+      { label: 'Billing', key: 'billing', kind: 'future' },
+      { label: 'Keuangan', key: 'finance', kind: 'future' },
+      { label: 'Akunting', key: 'accounting', kind: 'future' },
+      { label: 'Laporan', key: 'reports', kind: 'future' },
+    ],
+  },
 ];
-function App() {
-  const [activePage, setActivePage] = useState('Dashboard'); const [apiState, setApiState] = useState('checking'); const [salesView, setSalesView] = useState('list'); const [selectedSalesOrderId, setSelectedSalesOrderId] = useState(null); const [workOrderView, setWorkOrderView] = useState('list'); const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null);
-  useEffect(() => { let active = true; fetch(`${API_BASE_URL}/health`).then((response) => { if (active) setApiState(response.ok ? 'ok' : 'error'); }).catch(() => { if (active) setApiState('error'); }); return () => { active = false; }; }, []);
-  const isDashboard = activePage === 'Dashboard'; const isCustomers = activePage === 'Customers'; const isProducts = activePage === 'Products'; const isSalesOrders = activePage === 'Sales Orders'; const isProduction = activePage === 'Production'; const isWorkOrders = activePage === 'Work Orders'; const isPacking = activePage === 'Packing'; const isHandover = activePage === 'Handover'; const isPayments = activePage === 'Payments';
-  function navigate(page) { setActivePage(page); if (page === 'Sales Orders') { setSalesView('list'); setSelectedSalesOrderId(null); } if (page === 'Work Orders') { setWorkOrderView('list'); setSelectedWorkOrderId(null); } }
-  function selectSalesOrder(id) { setSelectedSalesOrderId(id); setActivePage('Sales Orders'); setSalesView('list'); }
-  function selectWorkOrder(id) { setSelectedWorkOrderId(id); setActivePage('Work Orders'); setWorkOrderView('detail'); }
-  function handleNewOrderComplete() { setSelectedSalesOrderId(null); setSalesView('list'); }
-  return <div className="erp-shell"><aside className="sidebar"><div className="brand"><div className="brand-mark">A</div><div><strong>ARTKRILIK</strong><span>ERP V3</span></div></div><nav className="sidebar-nav" aria-label="Main navigation">{['CORE', 'SALES', 'PRODUCTION', 'FULFILLMENT', 'FINANCE', 'MASTER DATA'].map((group) => <div className="nav-group" key={group}><span className="nav-label">{group}</span>{navigation.filter((item) => item.group === group).map((item) => <button className={`nav-item ${activePage === item.label ? 'active' : ''}`} key={item.label} onClick={() => navigate(item.label)} type="button"><span className="nav-icon" />{item.label}</button>)}</div>)}</nav><div className="sidebar-footer"><span className={`status-dot status-${apiState}`} /> API {apiState === 'ok' ? 'Connected' : apiState === 'checking' ? 'Checking' : 'Offline'}</div></aside><div className="workspace"><header className="topbar"><div><span className="breadcrumb">ARTKRILIK ERP / {isCustomers || isProducts ? `Master Data / ${activePage}` : isSalesOrders ? `Sales / ${salesView === 'new' ? 'New Order' : 'Sales Orders'}` : isProduction || isWorkOrders ? `Production / ${isWorkOrders ? (workOrderView === 'detail' ? 'WO Detail' : 'Work Orders') : 'Board'}` : isPacking || isHandover ? `Fulfillment / ${activePage}` : activePage}</span><h2>{isSalesOrders && salesView === 'new' ? 'New Order' : isWorkOrders && workOrderView === 'detail' ? 'Work Order Detail' : activePage}</h2></div><div className="topbar-actions"><button className="icon-button" type="button" aria-label="Notifications">●</button><div className="user-chip"><span className="avatar">A</span><span>Admin</span></div></div></header><main className="page-container">{isDashboard && <DashboardPage onSelectSalesOrder={selectSalesOrder} />}{isCustomers && <CustomersPage />}{isProducts && <ProductsPage />}{isSalesOrders && salesView === 'list' && <SalesOrdersPage onNewOrder={() => setSalesView('new')} selectedOrderId={selectedSalesOrderId} onSelectOrder={selectSalesOrder} />}{isSalesOrders && salesView === 'new' && <NewOrderPage onSelect={(selection) => { if (selection === 'CREATED') handleNewOrderComplete(); }} onCancel={() => setSalesView('list')} />}{isProduction && <ProductionPage />}{isWorkOrders && workOrderView === 'list' && <WorkOrdersPage onSelectWorkOrder={selectWorkOrder} />}{isWorkOrders && workOrderView === 'detail' && selectedWorkOrderId && <WorkOrderDetailPage workOrderId={selectedWorkOrderId} onBack={() => setWorkOrderView('list')} />}{isPacking && <PackingPage />}{isHandover && <HandoverPage />}{isPayments && <PaymentsPage />}</main></div></div>;
+
+const initialExpanded = {
+  sales: true,
+  purchases: true,
+  'products-stock': true,
+  others: true,
+};
+
+function FutureEnginePage({ label }) {
+  return (
+    <section className="future-engine-page">
+      <div className="future-engine-card">
+        <p className="eyebrow">FUTURE ENGINE</p>
+        <h1>{label}</h1>
+        <p className="page-description">Modul ini belum aktif dan disiapkan sebagai placeholder untuk pengembangan ERP-V3.</p>
+        <div className="future-engine-status">NOT READY</div>
+        <div className="future-engine-checklist">
+          <strong>Development Checklist</strong>
+          {['Business Logic', 'Database', 'Backend API', 'Frontend', 'Integration', 'Validation'].map((item) => (
+            <label key={item}>
+              <input type="checkbox" disabled />
+              <span>{item}</span>
+            </label>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
 }
-createRoot(document.getElementById('root')).render(<React.StrictMode><App /></React.StrictMode>);
+
+function App() {
+  const [activePage, setActivePage] = useState('Dashboard');
+  const [apiState, setApiState] = useState('checking');
+  const [salesView, setSalesView] = useState('list');
+  const [selectedSalesOrderId, setSelectedSalesOrderId] = useState(null);
+  const [workOrderView, setWorkOrderView] = useState('list');
+  const [selectedWorkOrderId, setSelectedWorkOrderId] = useState(null);
+  const [futurePage, setFuturePage] = useState(null);
+  const [expanded, setExpanded] = useState(initialExpanded);
+
+  useEffect(() => {
+    let active = true;
+    fetch(`${API_BASE_URL}/health`)
+      .then((response) => {
+        if (active) setApiState(response.ok ? 'ok' : 'error');
+      })
+      .catch(() => {
+        if (active) setApiState('error');
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const isDashboard = activePage === 'Dashboard';
+  const isCustomers = activePage === 'Customers';
+  const isProducts = activePage === 'Products';
+  const isSalesOrders = activePage === 'Sales Orders';
+  const isProduction = activePage === 'Production';
+  const isWorkOrders = activePage === 'Work Orders';
+  const isPacking = activePage === 'Packing';
+  const isHandover = activePage === 'Handover';
+  const isPayments = activePage === 'Payments';
+
+  function navigate(page) {
+    setFuturePage(null);
+    setActivePage(page);
+    if (page === 'Sales Orders') {
+      setSalesView('list');
+      setSelectedSalesOrderId(null);
+    }
+    if (page === 'Work Orders') {
+      setWorkOrderView('list');
+      setSelectedWorkOrderId(null);
+    }
+  }
+
+  function handleNavigation(item) {
+    if (item.kind === 'future') {
+      setFuturePage(item.label);
+      setActivePage('Future Engine');
+      return;
+    }
+
+    if (item.kind === 'new-order') {
+      setFuturePage(null);
+      setActivePage('Sales Orders');
+      setSalesView('new');
+      setSelectedSalesOrderId(null);
+      return;
+    }
+
+    if (item.key === 'dashboard') {
+      navigate('Dashboard');
+    } else if (item.key === 'customers') {
+      navigate('Customers');
+    } else if (item.key === 'products') {
+      navigate('Products');
+    }
+  }
+
+  function selectSalesOrder(id) {
+    setFuturePage(null);
+    setSelectedSalesOrderId(id);
+    setActivePage('Sales Orders');
+    setSalesView('list');
+  }
+
+  function selectWorkOrder(id) {
+    setFuturePage(null);
+    setSelectedWorkOrderId(id);
+    setActivePage('Work Orders');
+    setWorkOrderView('detail');
+  }
+
+  function handleNewOrderComplete() {
+    setSelectedSalesOrderId(null);
+    setSalesView('list');
+  }
+
+  function isItemActive(item) {
+    if (item.kind === 'new-order') return isSalesOrders && salesView === 'new';
+    if (item.key === 'customers') return isCustomers;
+    if (item.key === 'products') return isProducts;
+    return futurePage === item.label;
+  }
+
+  return (
+    <div className="erp-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">A</div>
+          <div>
+            <strong>ARTKRILIK</strong>
+            <span>ERP V3</span>
+          </div>
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Main navigation">
+          {navigation.map((item) => {
+            if (!item.children) {
+              return (
+                <button
+                  className={`nav-item nav-item-root ${isItemActive(item) ? 'active' : ''}`}
+                  key={item.key}
+                  onClick={() => handleNavigation(item)}
+                  type="button"
+                >
+                  <span className="nav-icon" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            }
+
+            const isExpanded = expanded[item.key] !== false;
+            const hasActiveChild = item.children.some(isItemActive);
+
+            return (
+              <div className={`nav-section ${hasActiveChild ? 'has-active' : ''}`} key={item.key}>
+                <button
+                  className={`nav-item nav-parent ${hasActiveChild ? 'active-parent' : ''}`}
+                  onClick={() => setExpanded((current) => ({ ...current, [item.key]: !isExpanded }))}
+                  type="button"
+                  aria-expanded={isExpanded}
+                >
+                  <span className="nav-icon" />
+                  <span>{item.label}</span>
+                  <span className="nav-chevron">{isExpanded ? '⌄' : '›'}</span>
+                </button>
+
+                {isExpanded && (
+                  <div className="nav-children">
+                    {item.children.map((child) => (
+                      <button
+                        className={`nav-item nav-child ${isItemActive(child) ? 'active' : ''}`}
+                        key={child.key}
+                        onClick={() => handleNavigation(child)}
+                        type="button"
+                      >
+                        <span>{child.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </nav>
+
+        <div className="sidebar-footer">
+          <span className={`status-dot status-${apiState}`} />
+          API {apiState === 'ok' ? 'Connected' : apiState === 'checking' ? 'Checking' : 'Offline'}
+        </div>
+      </aside>
+
+      <div className="workspace">
+        <header className="topbar">
+          <div>
+            <span className="breadcrumb">
+              ARTKRILIK ERP / {
+                futurePage
+                  ? `Future Engine / ${futurePage}`
+                  : isCustomers || isProducts
+                    ? `Master Data / ${activePage}`
+                    : isSalesOrders
+                      ? `Sales / ${salesView === 'new' ? 'New Order' : 'Sales Orders'}`
+                      : isProduction || isWorkOrders
+                        ? `Production / ${isWorkOrders ? (workOrderView === 'detail' ? 'WO Detail' : 'Work Orders') : 'Board'}`
+                        : isPacking || isHandover
+                          ? `Fulfillment / ${activePage}`
+                          : activePage
+              }
+            </span>
+            <h2>
+              {futurePage
+                ? futurePage
+                : isSalesOrders && salesView === 'new'
+                  ? 'New Order'
+                  : isWorkOrders && workOrderView === 'detail'
+                    ? 'Work Order Detail'
+                    : activePage}
+            </h2>
+          </div>
+          <div className="topbar-actions">
+            <button className="icon-button" type="button" aria-label="Notifications">●</button>
+            <div className="user-chip">
+              <span className="avatar">A</span>
+              <span>Admin</span>
+            </div>
+          </div>
+        </header>
+
+        <main className="page-container">
+          {futurePage && <FutureEnginePage label={futurePage} />}
+          {!futurePage && isDashboard && <DashboardPage onSelectSalesOrder={selectSalesOrder} />}
+          {!futurePage && isCustomers && <CustomersPage />}
+          {!futurePage && isProducts && <ProductsPage />}
+          {!futurePage && isSalesOrders && salesView === 'list' && (
+            <SalesOrdersPage
+              onNewOrder={() => setSalesView('new')}
+              selectedOrderId={selectedSalesOrderId}
+              onSelectOrder={selectSalesOrder}
+            />
+          )}
+          {!futurePage && isSalesOrders && salesView === 'new' && (
+            <NewOrderPage
+              onSelect={(selection) => {
+                if (selection === 'CREATED') handleNewOrderComplete();
+              }}
+              onCancel={() => setSalesView('list')}
+            />
+          )}
+          {!futurePage && isProduction && <ProductionPage />}
+          {!futurePage && isWorkOrders && workOrderView === 'list' && <WorkOrdersPage onSelectWorkOrder={selectWorkOrder} />}
+          {!futurePage && isWorkOrders && workOrderView === 'detail' && selectedWorkOrderId && (
+            <WorkOrderDetailPage workOrderId={selectedWorkOrderId} onBack={() => setWorkOrderView('list')} />
+          )}
+          {!futurePage && isPacking && <PackingPage />}
+          {!futurePage && isHandover && <HandoverPage />}
+          {!futurePage && isPayments && <PaymentsPage />}
+          {!futurePage && activePage === 'Sales Order Detail' && <SalesOrderDetailPage />}
+        </main>
+      </div>
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);

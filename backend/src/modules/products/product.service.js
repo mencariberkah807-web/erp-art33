@@ -11,8 +11,9 @@ function normalizeText(value) {
 function validateProduct(input, { partial = false } = {}) {
   const product = { ...input };
 
-  if (partial && input.sku !== undefined) {
+  if (!partial || input.sku !== undefined) {
     product.sku = normalizeText(input.sku);
+    if (!product.sku) throw validationError('SKU is required.');
   }
 
   if (!partial || input.name !== undefined) {
@@ -42,8 +43,20 @@ function validateProduct(input, { partial = false } = {}) {
     product.status = 'ACTIVE';
   }
 
-  for (const key of ['category', 'material', 'thickness', 'dimension', 'color', 'specification', 'description', 'imageUrl']) {
+  for (const key of ['category', 'material', 'thickness', 'color', 'specification', 'description', 'imageUrl']) {
     if (input[key] !== undefined) product[key] = normalizeText(input[key]);
+  }
+
+  for (const key of ['lengthCm', 'widthCm', 'heightCm']) {
+    if (input[key] !== undefined) {
+      if (input[key] === null || input[key] === '') {
+        product[key] = null;
+      } else {
+        const value = Number(input[key]);
+        if (!Number.isFinite(value) || value < 0) throw validationError(`${key} must be a number greater than or equal to 0.`);
+        product[key] = value;
+      }
+    }
   }
 
   return product;
@@ -74,7 +87,6 @@ export async function getProduct(pool, id) {
 
 export async function createProduct(pool, input) {
   const product = validateProduct(input);
-  delete product.sku;
   try {
     return await repository.createProduct(pool, product);
   } catch (error) {
@@ -89,7 +101,6 @@ export async function createProduct(pool, input) {
 
 export async function updateProduct(pool, id, input) {
   const product = validateProduct(input, { partial: true });
-  delete product.sku;
   try {
     return await repository.updateProduct(pool, id, product);
   } catch (error) {

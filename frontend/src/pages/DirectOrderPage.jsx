@@ -42,7 +42,10 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
   const [deadline, setDeadline] = useState('');
   const [priority, setPriority] = useState('REGULAR');
   const [items, setItems] = useState([emptyItem()]);
-  const [payments, setPayments] = useState([emptyPayment()]);
+  const [payments, setPayments] = useState([]);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentForm, setPaymentForm] = useState(emptyPayment());
+  const [paymentError, setPaymentError] = useState('');
   const [saving, setSaving] = useState(false);
   const [loadingMaster, setLoadingMaster] = useState(true);
   const [error, setError] = useState('');
@@ -107,6 +110,17 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
     } catch (e) { setProductError(e.message); } finally { setProductSubmitting(false); }
   }
 
+  function updatePaymentForm(key, value) { setPaymentForm((current) => ({ ...current, [key]: value })); }
+  function savePayment(event) {
+    event.preventDefault(); setPaymentError('');
+    const amount = Number(paymentForm.amount || 0);
+    if (!Number.isFinite(amount) || amount <= 0) return setPaymentError('Payment amount must be greater than zero.');
+    if (amount > balance + 0.000001) return setPaymentError('Payment amount cannot exceed Balance.');
+    if (!paymentForm.paymentMethod) return setPaymentError('Payment method is required.');
+    setPayments((current) => [...current, { ...paymentForm, amount: String(amount) }]);
+    setPaymentModalOpen(false); setPaymentForm(emptyPayment());
+  }
+
   async function submit(event) {
     event.preventDefault(); setError('');
     if (!isMarketplace && !customerId) return setError('Customer is required.');
@@ -164,60 +178,45 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
             </div></div>
           </div>
         </section>
-        {!isMarketplace && <section className="form-card reference-card">
-          <div className="section-heading"><div><h2>Customer Information</h2><p>Customer master information.</p></div><button className="primary-button" type="button" onClick={openCustomerModal}>+ Add Customer</button></div>
-          <div className="reference-customer-grid">
-            <label className="form-field reference-full"><span>Customer *</span><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Select customer...</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select></label>
-            <label className="form-field"><span>Mobile</span><input value={selectedCustomer?.mobile || ''} readOnly /></label>
-            <label className="form-field"><span>Email</span><input value={selectedCustomer?.email || ''} readOnly /></label>
-            <label className="form-field reference-full"><span>Address</span><textarea value={selectedCustomer?.address || ''} readOnly rows="2" /></label>
+        {!isMarketplace && <section className="form-card reference-card payment-reference-card">
+        <div className="section-heading"><div><h2>Payment</h2></div><button className="primary-button" type="button" onClick={() => { setPaymentForm(emptyPayment()); setPaymentError(''); setPaymentModalOpen(true); }}>+ Add Payment</button></div>
+        <div className="payment-reference-body">
+          <div className="payment-reference-summary">
+            <div className="payment-reference-title">Payment Summary</div>
+            <div className="payment-summary-fields">
+              <label className="form-field"><span>Grand Total</span><input value={money(totals.total)} readOnly /></label>
+              <label className="form-field"><span>Amount Paid</span><input value={money(totalPaid)} readOnly /></label>
+              <label className="form-field"><span>Balance</span><input value={money(balance)} readOnly /></label>
+            </div>
+            <div className="payment-note">{payments.length ? `${payments.length} payment record${payments.length === 1 ? '' : 's'} recorded.` : 'No payment has been recorded.'}</div>
           </div>
-        </section>}
-      </div>
-
-      <section className="form-card reference-card">
-        <div className="section-heading"><div><h2>Order Items</h2><p>One item represents one sales-order item and keeps its artwork/attachment with the item.</p></div><button className="primary-button" type="button" onClick={addItem}>+ Add Item</button></div>
-        <div className="reference-items">
-          {items.map((item, index) => {
-            const gross = Number(item.quantity || 0) * Number(item.unitPrice || 0);
-            const discount = item.discountType === 'PERCENTAGE' ? gross * Number(item.discountValue || 0) / 100 : Number(item.discountValue || 0);
-            const itemTotal = Math.max(0, gross - discount);
-            const product = products.find((p) => p.id === item.productId);
-            return <div className="reference-item" key={index}>
-              <div className="reference-item-main">
-                <div className="reference-item-fields">
-                  <div className="reference-product-control"><label className="form-field reference-product"><span>Product *</span><select value={item.productId} onChange={(e) => selectProduct(index, e.target.value)} disabled={loadingMaster}><option value="">Select product...</option>{products.map((p) => <option key={p.id} value={p.id}>{p.sku} — {p.name}</option>)}</select></label><button className="secondary-button add-product-inline" type="button" onClick={openProductModal}>+ Add Product</button></div>
-                  <label className="form-field"><span>Qty *</span><input type="number" min="1" step="1" value={item.quantity} onChange={(e) => updateItem(index, 'quantity', e.target.value)} /></label>
-                  <label className="form-field"><span>Unit Price *</span><input type="number" min="0" step="1" value={item.unitPrice} onChange={(e) => updateItem(index, 'unitPrice', e.target.value)} /></label>
-                  <div className="discount-field"><span>Discount</span><div><input type="number" min="0" step="0.01" max={item.discountType === 'PERCENTAGE' ? 100 : undefined} value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /><select aria-label="Discount type" value={item.discountType} onChange={(e) => updateItem(index, 'discountType', e.target.value)}><option value="NOMINAL">Rp</option><option value="PERCENTAGE">%</option></select></div></div>
-                </div>
-                <div className="reference-product-info">
-                  {['SKU','Material','Category','Thickness','Dimension','Color','Specification'].map((label) => { const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', Specification: 'specification' }[label]; return <div key={label}><span>{label}</span><strong>{product?.[key] || '—'}</strong></div>; })}
-                </div>
-              </div>
-              <div className="reference-item-total"><span>Item Total</span><strong>{money(itemTotal)}</strong></div>
-              <div className="reference-item-options"><label className="checkbox-field"><input type="checkbox" checked={item.isCustom} onChange={(e) => updateItem(index, 'isCustom', e.target.checked)} /><span>Custom / Special Request</span></label>{items.length > 1 && <button className="text-danger" type="button" onClick={() => removeItem(index)}>Remove</button>}</div>
-              {item.isCustom && <div className="custom-notes-field"><label className="form-field reference-full"><span>Special Request / Production Notes</span><textarea rows="2" value={item.productionNotes} onChange={(e) => updateItem(index, 'productionNotes', e.target.value)} placeholder="Admin input for custom / special request..." /></label></div>}
-              <div className="reference-item-attachment"><div className="reference-artwork-preview">{item.artworkFileUrl ? <img src={item.artworkFileUrl} alt="Artwork preview" /> : <span>Artwork Preview</span>}</div><div className="reference-attachment-fields"><label className="form-field"><span>Artwork File URL</span><input value={item.artworkFileUrl} onChange={(e) => updateItem(index, 'artworkFileUrl', e.target.value)} placeholder="File / preview URL" /></label><label className="form-field"><span>Google Drive / Artwork Link</span><input value={item.artworkDriveUrl} onChange={(e) => updateItem(index, 'artworkDriveUrl', e.target.value)} placeholder="Drive URL" /></label></div></div>
-            </div>;
-          })}
+          <div className="payment-reference-method">
+            <div className="payment-reference-title">Payment Method</div>
+            {['Cash','Transfer','QRIS'].map((method) => <label className="payment-method-option" key={method}><input type="radio" name="reference-payment-method" value={method} checked={(payments[payments.length - 1]?.paymentMethod || 'Cash') === method} readOnly /><span>{method}</span></label>)}
+            <div className="payment-reference-status"><span>Payment Status</span><strong>{totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong></div>
+          </div>
         </div>
       </section>
-
-      <div className="reference-summary-card"><div><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div><div><span>Discount</span><strong>{money(totals.discount)}</strong></div><div className="grand-total"><span>Grand Total</span><strong>{money(totals.total)}</strong></div></div>
-
-      {!isMarketplace && <section className="form-card reference-card">
-        <div className="section-heading"><div><h2>Payment</h2><p>Record payments inline. Additional payments can be added before creating the order.</p></div><button className="primary-button" type="button" onClick={addPayment}>+ Add Payment</button></div>
-        <div className="reference-payment-grid"><div className="reference-payment-summary">
-          {payments.map((payment, index) => <div className="reference-payment-row" key={index}><label className="form-field"><span>Amount</span><input type="number" min="0" step="1" value={payment.amount} onChange={(e) => updatePayment(index, 'amount', e.target.value)} max={Math.max(0, totals.total - totalPaid + Number(payment.amount || 0))} /></label><div className="form-field payment-method-radio-field"><span>Payment Method</span><div className="payment-method-radios">{['Cash','Transfer','QRIS'].map((method) => <label className="radio" key={method}><input type="radio" name={`payment-method-${index}`} value={method} checked={payment.paymentMethod === method} onChange={() => updatePayment(index, 'paymentMethod', method)} /><span>{method}</span></label>)}</div></div><label className="form-field"><span>Payment Date</span><input type="date" value={payment.paymentDate} onChange={(e) => updatePayment(index, 'paymentDate', e.target.value)} /></label><label className="form-field"><span>Reference Number</span><input value={payment.referenceNumber} onChange={(e) => updatePayment(index, 'referenceNumber', e.target.value)} /></label>{payments.length > 1 && <button className="text-danger reference-payment-remove" type="button" onClick={() => removePayment(index)}>Remove</button>}</div>)}
-          <div className="reference-summary-card compact"><div><span>Grand Total</span><strong>{money(totals.total)}</strong></div><div><span>Amount Paid</span><strong>{money(totalPaid)}</strong></div><div className="grand-total"><span>Balance</span><strong>{money(balance)}</strong></div></div>
-        </div><div className="reference-payment-method"><strong>Payment Method</strong><p>Cash, Transfer, or QRIS</p><span className="reference-payment-status-label">Payment Status</span><strong>{totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong></div></div>
-      </section>}
-
       {isMarketplace && <div className="form-note">Marketplace payment status: <strong>PAID</strong> · payment is recorded automatically when the order is created.</div>}
       {error && <div className="form-error">{error}</div>}
       <div className="reference-footer-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : isMarketplace ? 'Create WO' : 'Create Order'}</button></div>
     </form>
+    {paymentModalOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setPaymentModalOpen(false)}>
+      <section className="modal-card payment-entry-modal" role="dialog" aria-modal="true" aria-labelledby="payment-entry-title">
+        <div className="modal-header"><div><p className="eyebrow">PAYMENT</p><h2 id="payment-entry-title">Add Payment</h2><p>Record a payment against this sales order.</p></div></div>
+        <form onSubmit={savePayment}>
+          <div className="form-grid">
+            <label className="form-field"><span>Amount *</span><input type="number" min="0.01" step="1" value={paymentForm.amount} onChange={(e) => updatePaymentForm('amount', e.target.value)} autoFocus /></label>
+            <div className="form-field"><span>Payment Method *</span><div className="payment-entry-methods">{['Cash','Transfer','QRIS'].map((method) => <label className="payment-method-option" key={method}><input type="radio" name="payment-entry-method" value={method} checked={paymentForm.paymentMethod === method} onChange={() => updatePaymentForm('paymentMethod', method)} /><span>{method}</span></label>)}</div></div>
+            <label className="form-field"><span>Payment Date</span><input type="date" value={paymentForm.paymentDate} onChange={(e) => updatePaymentForm('paymentDate', e.target.value)} /></label>
+            <label className="form-field"><span>Reference Number</span><input value={paymentForm.referenceNumber} onChange={(e) => updatePaymentForm('referenceNumber', e.target.value)} /></label>
+            <label className="form-field form-field-full"><span>Notes</span><textarea rows="3" value={paymentForm.notes} onChange={(e) => updatePaymentForm('notes', e.target.value)} /></label>
+          </div>
+          {paymentError && <div className="form-error" role="alert">{paymentError}</div>}
+          <div className="modal-actions"><button className="secondary-button" type="button" onClick={() => setPaymentModalOpen(false)}>Cancel</button><button className="primary-button" type="submit">Save Payment</button></div>
+        </form>
+      </section>
+    </div>}
     {customerModalOpen && <EntityFormModal title="Add Customer" description="Create a customer master record and use it immediately in this order." fields={CUSTOMER_FIELDS} values={customerForm} onChange={updateCustomerField} onSubmit={createCustomer} onClose={() => !customerSubmitting && setCustomerModalOpen(false)} submitting={customerSubmitting} error={customerError} />}
     {productModalOpen && <EntityFormModal title="Add Product" description="Create a product master record and use it immediately in this order." fields={PRODUCT_FIELDS} values={productForm} onChange={updateProductField} onSubmit={createProduct} onClose={() => !productSubmitting && setProductModalOpen(false)} submitting={productSubmitting} error={productError} />}
   </section>;

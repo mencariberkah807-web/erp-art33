@@ -112,7 +112,8 @@
   .new-order-page .new-order-type-options{width:100%;justify-content:flex-start}
 }
 
-.new-order-reference-form .reference-order-grid{grid-template-columns:1fr 1fr 1fr 2.4fr}
+.new-order-reference-form .reference-order-grid{grid-template-columns:1fr 1fr}
+.new-order-reference-form .reference-order-grid .reference-priority{grid-column:1/-1}
 .new-order-reference-form .reference-priority{min-width:0}
 .new-order-reference-form .priority-radio-row{display:flex;align-items:center;gap:12px;min-height:32px;flex-wrap:wrap}
 .new-order-reference-form .priority-radio-row .radio{display:inline-flex;align-items:center;gap:5px;color:#344054;font-size:10px;font-weight:600;white-space:nowrap}

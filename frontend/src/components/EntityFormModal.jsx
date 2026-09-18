@@ -12,12 +12,14 @@ export default function EntityFormModal({ title, description, fields, values, on
             <h2 id="entity-form-title">{title}</h2>
             {description && <p>{description}</p>}
           </div>
+          <button className="modal-close-button" type="button" onClick={onClose} disabled={submitting} aria-label="Close form">×</button>
         </div>
 
         <form onSubmit={onSubmit}>
           <div className="form-grid">
             {fields.map((field) => (
-              <label className={field.fullWidth ? 'form-field form-field-full' : 'form-field'} key={field.name}>
+              <div className={field.type === 'section' ? 'form-section-heading' : (field.fullWidth ? 'form-field form-field-full' : 'form-field')} key={field.name}>
+                {field.type === 'section' ? <><strong>{field.label}</strong>{field.help && <span>{field.help}</span>}</> : <label className="form-field-inner">
                 <span>{field.label}{field.required ? ' *' : ''}</span>
                 {field.type === 'select' ? (
                   <select value={values[field.name] ?? ''} onChange={(event) => onChange(field.name, event.target.value)} required={field.required}>
@@ -29,7 +31,9 @@ export default function EntityFormModal({ title, description, fields, values, on
                 ) : (
                   <input type={field.type || 'text'} min={field.min} step={field.step} value={values[field.name] ?? ''} onChange={(event) => onChange(field.name, event.target.value)} required={field.required} />
                 )}
-              </label>
+                {field.help && <small className="field-help">{field.help}</small>}
+              </label>}
+              </div>
             ))}
           </div>
 

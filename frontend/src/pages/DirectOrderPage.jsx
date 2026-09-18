@@ -10,7 +10,7 @@ const emptyCustomer = () => ({ name: '', company: '', mobile: '', email: '', add
 const emptyProduct = () => ({ name: '', category: '', material: '', thickness: '', dimension: '', color: '', specification: '', unit: '', standardPrice: '', description: '', imageUrl: '', status: 'ACTIVE' });
 const CUSTOMER_FIELDS = [
   { name: 'name', label: 'Name', required: true }, { name: 'company', label: 'Company' }, { name: 'mobile', label: 'Mobile' },
-  { name: 'email', label: 'Email', type: 'email' }, { name: 'customerType', label: 'Customer Type' },
+  { name: 'email', label: 'Email', type: 'email' }, { name: 'customerType', label: 'Customer Type', type: 'select', options: [{ value: 'Individual', label: 'Individual' }, { value: 'Company', label: 'Company' }, { value: 'Other', label: 'Other' }] },
   { name: 'address', label: 'Address', fullWidth: true }, { name: 'notes', label: 'Notes', type: 'textarea', fullWidth: true },
 ];
 const PRODUCT_FIELDS = [
@@ -76,7 +76,7 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
     const product = products.find((p) => p.id === productId);
     setItems((current) => current.map((item, i) => i === index ? { ...item, productId, unitPrice: product ? Number(product.standardPrice || 0) : item.unitPrice } : item));
   }
-  function addItem() { setItems((current) => [...current, emptyItem()]); }
+  function addItem() { setProductForm(emptyProduct()); setProductError(''); setProductModalOpen(true); }
   function removeItem(index) { setItems((current) => current.filter((_, i) => i !== index)); }
   function updatePayment(index, key, value) { setPayments((current) => current.map((payment, i) => i === index ? { ...payment, [key]: value } : payment)); }
   function addPayment() { setPayments((current) => [...current, emptyPayment()]); }
@@ -105,7 +105,11 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
       if (!response.ok) throw new Error(payload?.error?.message || 'Unable to create product.');
       const product = payload.data;
       setProducts((current) => [product, ...current]);
-      setItems((current) => current.map((item, index) => index === current.findIndex((entry) => !entry.productId) ? { ...item, productId: product.id, unitPrice: Number(product.standardPrice || 0) } : item));
+      setItems((current) => {
+        const emptyIndex = current.findIndex((entry) => !entry.productId);
+        const nextItem = { ...emptyItem(), productId: product.id, unitPrice: Number(product.standardPrice || 0) };
+        return emptyIndex >= 0 ? current.map((item, index) => index === emptyIndex ? { ...item, productId: product.id, unitPrice: Number(product.standardPrice || 0) } : item) : [...current, nextItem];
+      });
       setProductModalOpen(false); setProductForm(emptyProduct());
     } catch (e) { setProductError(e.message); } finally { setProductSubmitting(false); }
   }

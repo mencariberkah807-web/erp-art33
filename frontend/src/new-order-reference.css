@@ -150,3 +150,101 @@
 @media(max-width:600px){
   .new-order-reference-form .payment-summary-fields{grid-template-columns:1fr}
 }
+
+
+/* Paper-style single-workspace order layout: transaction form stays left, live summary stays visible. */
+.new-order-reference-form .new-order-workspace{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 300px;
+  gap:12px;
+  align-items:start;
+}
+.new-order-reference-form .new-order-main{min-width:0}
+.new-order-summary{
+  position:sticky;
+  top:12px;
+  min-width:0;
+  padding:14px;
+  background:#fff;
+  border:1px solid #e5e7eb;
+  border-radius:8px;
+  box-shadow:none;
+}
+.new-order-summary-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding-bottom:11px;
+  border-bottom:1px solid #e5e7eb;
+}
+.new-order-summary-header h2{
+  margin:0;
+  color:#202124;
+  font-size:13px;
+}
+.new-order-summary-header span{
+  color:#737780;
+  font-size:9px;
+}
+.new-order-summary-list{
+  display:grid;
+  gap:0;
+}
+.new-order-summary-list>div,
+.new-order-summary-payment>div{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:9px 0;
+  border-bottom:1px solid #eef0f3;
+}
+.new-order-summary-list span,
+.new-order-summary-payment span{
+  color:#737780;
+  font-size:9px;
+}
+.new-order-summary-list strong,
+.new-order-summary-payment strong{
+  color:#30343a;
+  font-size:10px;
+  text-align:right;
+}
+.new-order-summary-list .new-order-summary-total{
+  margin-top:2px;
+  padding:12px 0;
+}
+.new-order-summary-list .new-order-summary-total span{
+  color:#202124;
+  font-size:10px;
+  font-weight:700;
+}
+.new-order-summary-list .new-order-summary-total strong{
+  color:#2476ed;
+  font-size:15px;
+}
+.new-order-summary-payment{
+  margin-top:14px;
+}
+.new-order-summary-payment h3{
+  margin:0 0 4px;
+  color:#202124;
+  font-size:10px;
+  font-weight:700;
+}
+.new-order-summary-payment>div:last-child{border-bottom:0}
+.new-order-summary-note{
+  margin-top:12px;
+  padding:8px 9px;
+  border:1px solid #e0e6ef;
+  border-radius:6px;
+  background:#f8fafc;
+  color:#667085;
+  font-size:9px;
+  line-height:1.45;
+}
+@media(max-width:1050px){
+  .new-order-reference-form .new-order-workspace{grid-template-columns:1fr}
+  .new-order-summary{position:relative;top:auto}
+}

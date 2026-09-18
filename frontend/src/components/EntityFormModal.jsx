@@ -17,7 +17,7 @@ export default function EntityFormModal({ title, description, fields, values, on
 
         <form onSubmit={onSubmit}>
           <div className="form-grid">
-            {fields.map((field) => (
+            {fields.filter((field) => !(field.name === 'status' && !editing)).map((field) => (
               <div className={field.type === 'section' ? 'form-section-heading' : (field.fullWidth ? 'form-field form-field-full' : 'form-field')} key={field.name}>
                 {field.type === 'section' ? <><strong>{field.label}</strong>{field.help && <span>{field.help}</span>}</> : <label className="form-field-inner">
                 <span>{field.label}{field.required ? ' *' : ''}</span>

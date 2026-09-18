@@ -87,6 +87,8 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
 
   const totalPaid = paymentTotal(payments);
   const balance = Math.max(0, totals.total - totalPaid);
+  const displayPaid = isMarketplace ? totals.total : totalPaid;
+  const displayBalance = isMarketplace ? 0 : balance;
   const selectedCustomer = customers.find((customer) => customer.id === customerId);
 
   function updateItem(index, key, value) { setItems((current) => current.map((item, i) => i === index ? { ...item, [key]: value } : item)); }
@@ -171,6 +173,8 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
 
   return <section className="page-section new-order-reference-form">
     <form onSubmit={submit}>
+      <div className="new-order-workspace">
+        <div className="new-order-main">
       {isMarketplace && <section className="form-card reference-card marketplace-inline-card">
         <div className="section-heading"><div><h2>Marketplace Information</h2><p>Tracking and marketplace channel for this order.</p></div></div>
         <div className="marketplace-layout">
@@ -263,6 +267,27 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
       {isMarketplace && <div className="form-note">Marketplace payment status: <strong>PAID</strong> · payment is recorded automatically when the order is created.</div>}
       {error && <div className="form-error">{error}</div>}
       <div className="reference-footer-actions"><button className="secondary-button" type="button" onClick={onCancel} disabled={saving}>Cancel</button><button className="primary-button" type="submit" disabled={saving || loadingMaster}>{saving ? 'Creating...' : isMarketplace ? 'Create WO' : 'Create Order'}</button></div>
+        </div>
+
+        <aside className="new-order-summary" aria-label="Order summary">
+          <div className="new-order-summary-header">
+            <h2>Order Summary</h2>
+            <span>{items.length} item{items.length === 1 ? '' : 's'}</span>
+          </div>
+          <div className="new-order-summary-list">
+            <div><span>Subtotal</span><strong>{money(totals.subtotal)}</strong></div>
+            <div><span>Discount</span><strong>{money(totals.discount)}</strong></div>
+            <div className="new-order-summary-total"><span>Grand Total</span><strong>{money(totals.total)}</strong></div>
+          </div>
+          <div className="new-order-summary-payment">
+            <h3>Payment</h3>
+            <div><span>Amount Paid</span><strong>{money(displayPaid)}</strong></div>
+            <div><span>Balance</span><strong>{money(displayBalance)}</strong></div>
+            <div><span>Status</span><strong>{isMarketplace ? 'PAID' : totals.total <= 0 ? 'UNPAID' : totalPaid >= totals.total ? 'PAID' : totalPaid > 0 ? 'PARTIALLY PAID' : 'UNPAID'}</strong></div>
+          </div>
+          {isMarketplace && <div className="new-order-summary-note">Marketplace payment is recorded automatically as PAID when the order is created.</div>}
+        </aside>
+      </div>
     </form>
     {paymentModalOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(event) => event.target === event.currentTarget && setPaymentModalOpen(false)}>
       <section className="modal-card payment-entry-modal" role="dialog" aria-modal="true" aria-labelledby="payment-entry-title">

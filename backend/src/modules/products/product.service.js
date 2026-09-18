@@ -108,7 +108,7 @@ export async function createProduct(pool, input) {
 
 export async function updateProduct(pool, id, input) {
   const product = validateProduct(input, { partial: true });
-  syncLegacyDimension(product);
+  if (['lengthCm', 'widthCm', 'heightCm'].some((key) => input[key] !== undefined)) syncLegacyDimension(product);
   try {
     return await repository.updateProduct(pool, id, product);
   } catch (error) {

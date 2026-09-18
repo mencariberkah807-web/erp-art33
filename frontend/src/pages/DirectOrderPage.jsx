@@ -177,7 +177,18 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
             </div></div>
           </div>
         </section>
-        {!isMarketplace && <section className="form-card reference-card payment-reference-card">
+        {!isMarketplace && <section className="form-card reference-card">
+          <div className="section-heading"><div><h2>Customer Information</h2><p>Customer master information.</p></div><button className="primary-button" type="button" onClick={openCustomerModal}>+ Add Customer</button></div>
+          <div className="reference-customer-grid">
+            <label className="form-field reference-full"><span>Customer *</span><select value={customerId} onChange={(e) => setCustomerId(e.target.value)} disabled={loadingMaster}><option value="">Select customer...</option>{customers.map((c) => <option key={c.id} value={c.id}>{c.customerCode} — {c.name}</option>)}</select></label>
+            <label className="form-field"><span>Mobile</span><input value={selectedCustomer?.mobile || ''} readOnly /></label>
+            <label className="form-field"><span>Email</span><input value={selectedCustomer?.email || ''} readOnly /></label>
+            <label className="form-field reference-full"><span>Address</span><textarea value={selectedCustomer?.address || ''} readOnly rows="2" /></label>
+          </div>
+        </section>}
+      </div>
+
+{!isMarketplace && <section className="form-card reference-card payment-reference-card">
         <div className="section-heading"><div><h2>Payment</h2></div><button className="primary-button" type="button" onClick={() => { setPaymentForm(emptyPayment()); setPaymentError(''); setPaymentModalOpen(true); }}>+ Add Payment</button></div>
         <div className="payment-reference-body">
           <div className="payment-reference-summary">

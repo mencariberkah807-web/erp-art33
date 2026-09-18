@@ -127,3 +127,26 @@
 @media(max-width:900px){
   .new-order-reference-form .reference-order-grid{grid-template-columns:1fr 1fr}
 }
+
+.new-order-reference-form .payment-reference-body{display:grid;grid-template-columns:minmax(0,1fr) 170px;gap:18px;padding:10px}
+.new-order-reference-form .payment-reference-summary{min-width:0}
+.new-order-reference-form .payment-reference-title{font-size:10px;font-weight:700;color:#202124;margin-bottom:8px}
+.new-order-reference-form .payment-summary-fields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.new-order-reference-form .payment-summary-fields .form-field input{color:#30343a;font-weight:600}
+.new-order-reference-form .payment-note{margin-top:7px;padding:7px 9px;background:#f6f7f9;color:#667085;font-size:9px;border-radius:3px}
+.new-order-reference-form .payment-reference-method{border-left:1px solid #eef0f3;padding-left:15px}
+.new-order-reference-form .payment-method-option{display:flex;align-items:center;gap:6px;margin-bottom:7px;color:#30343a;font-size:10px;cursor:pointer}
+.new-order-reference-form .payment-method-option input{width:13px;height:13px;margin:0;accent-color:#2476ed}
+.new-order-reference-form .payment-reference-status{display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding-top:8px;border-top:1px solid #eef0f3;font-size:9px}
+.new-order-reference-form .payment-reference-status span{color:#737780}
+.new-order-reference-form .payment-reference-status strong{padding:4px 8px;background:#f6f7f9;font-size:9px}
+.new-order-reference-form .payment-entry-methods{display:flex;gap:12px;min-height:32px;align-items:center}
+.new-order-reference-form .payment-entry-methods .payment-method-option{margin:0}
+.new-order-reference-form .payment-entry-modal{max-width:560px}
+@media(max-width:900px){
+  .new-order-reference-form .payment-reference-body{grid-template-columns:1fr}
+  .new-order-reference-form .payment-reference-method{border-left:0;border-top:1px solid #eef0f3;padding:10px 0 0}
+}
+@media(max-width:600px){
+  .new-order-reference-form .payment-summary-fields{grid-template-columns:1fr}
+}

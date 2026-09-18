@@ -57,9 +57,19 @@ export async function findSalesOrderById(pool, id, forUpdate = false) {
   return result.rows[0] ?? null;
 }
 
-export async function nextSalesOrderNumber(db) {
-  const result = await db.query(`SELECT COALESCE(MAX(NULLIF(regexp_replace(so_number, '\\D', '', 'g'), '')::BIGINT), 0) + 1 AS next_number FROM sales_orders`);
-  return `SO-${String(result.rows[0].next_number).padStart(6, '0')}`;
+export async function nextSalesOrderNumber(db, orderDate) {
+  await db.query(`SELECT pg_advisory_xact_lock(hashtext('sales_order_number'))`);
+  const result = await db.query(
+    `SELECT COALESCE(
+       MAX(NULLIF(substring(so_number FROM '^SO-[0-9]{6}-([0-9]+)$'), '')::BIGINT),
+       0
+     ) + 1 AS next_number
+     FROM sales_orders
+     WHERE order_date = $1`,
+    [orderDate],
+  );
+  const datePart = String(orderDate).slice(2, 10).replace(/-/g, '');
+  return `SO-${datePart}-${String(result.rows[0].next_number).padStart(4, '0')}`;
 }
 
 export async function createSalesOrder(db, order) {

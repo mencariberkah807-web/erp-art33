@@ -62,6 +62,12 @@ function validateProduct(input, { partial = false } = {}) {
   return product;
 }
 
+function syncLegacyDimension(product) {
+  const values = [product.lengthCm, product.widthCm, product.heightCm]
+    .filter((value) => value !== undefined && value !== null && value !== '');
+  product.dimension = values.length ? values.join(' × ') + ' cm' : null;
+}
+
 function validationError(message) {
   return Object.assign(new Error(message), { code: 'VALIDATION_ERROR' });
 }
@@ -87,6 +93,7 @@ export async function getProduct(pool, id) {
 
 export async function createProduct(pool, input) {
   const product = validateProduct(input);
+  syncLegacyDimension(product);
   try {
     return await repository.createProduct(pool, product);
   } catch (error) {
@@ -101,6 +108,7 @@ export async function createProduct(pool, input) {
 
 export async function updateProduct(pool, id, input) {
   const product = validateProduct(input, { partial: true });
+  syncLegacyDimension(product);
   try {
     return await repository.updateProduct(pool, id, product);
   } catch (error) {

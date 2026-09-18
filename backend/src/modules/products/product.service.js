@@ -34,6 +34,22 @@ function validateProduct(input, { partial = false } = {}) {
     product.standardPrice = value;
   }
 
+  if (!partial || input.standardPurchasePrice !== undefined) {
+    const value = Number(input.standardPurchasePrice ?? 0);
+    if (!Number.isFinite(value) || value < 0) {
+      throw validationError('Standard purchase price must be a number greater than or equal to 0.');
+    }
+    product.standardPurchasePrice = value;
+  }
+
+  if (!partial || input.initialStock !== undefined) {
+    const value = Number(input.initialStock ?? 0);
+    if (!Number.isFinite(value) || value < 0) {
+      throw validationError('Initial stock must be a number greater than or equal to 0.');
+    }
+    product.initialStock = value;
+  }
+
   if (input.status !== undefined) {
     product.status = String(input.status).trim().toUpperCase();
     if (!ALLOWED_STATUS.has(product.status)) {

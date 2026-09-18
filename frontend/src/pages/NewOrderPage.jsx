@@ -18,16 +18,18 @@ export default function NewOrderPage({ onSelect, onCancel }) {
     </div>
 
     <section className="new-order-type-card">
-      <div className="new-order-type-title">Order Type</div>
-      <div className="new-order-type-options" role="radiogroup" aria-label="Order type">
-        <label className={orderType === 'DIRECT' ? 'active' : ''}>
-          <input type="radio" name="new-order-type" value="DIRECT" checked={orderType === 'DIRECT'} onChange={() => setOrderType('DIRECT')} />
-          <span>Direct Order</span>
-        </label>
-        <label className={orderType === 'MARKETPLACE' ? 'active' : ''}>
-          <input type="radio" name="new-order-type" value="MARKETPLACE" checked={orderType === 'MARKETPLACE'} onChange={() => setOrderType('MARKETPLACE')} />
-          <span>Marketplace</span>
-        </label>
+      <div className="new-order-type-header">Order Type</div>
+      <div className="new-order-type-body">
+        <div className="new-order-type-options" role="radiogroup" aria-label="Order type">
+          <label className={orderType === 'DIRECT' ? 'active' : ''}>
+            <input type="radio" name="new-order-type" value="DIRECT" checked={orderType === 'DIRECT'} onChange={() => setOrderType('DIRECT')} />
+            <span>Direct Order</span>
+          </label>
+          <label className={orderType === 'MARKETPLACE' ? 'active' : ''}>
+            <input type="radio" name="new-order-type" value="MARKETPLACE" checked={orderType === 'MARKETPLACE'} onChange={() => setOrderType('MARKETPLACE')} />
+            <span>Marketplace</span>
+          </label>
+        </div>
       </div>
     </section>
 

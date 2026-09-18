@@ -232,7 +232,7 @@ export default function DirectOrderPage({ orderType = 'DIRECT', onCancel, onCrea
                   <div className="discount-field"><span>Discount</span><div><input type="number" min="0" step="0.01" max={item.discountType === 'PERCENTAGE' ? 100 : undefined} value={item.discountValue} onChange={(e) => updateItem(index, 'discountValue', e.target.value)} /><select aria-label="Discount type" value={item.discountType} onChange={(e) => updateItem(index, 'discountType', e.target.value)}><option value="NOMINAL">Rp</option><option value="PERCENTAGE">%</option></select></div></div>
                 </div>
                 <div className="reference-product-info">
-                  {['SKU','Material','Category','Thickness','Dimension','Color','Specification'].map((label) => { const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', Specification: 'specification' }[label]; return <div key={label}><span>{label}</span><strong>{product?.[key] || '—'}</strong></div>; })}
+                  {['SKU','Material','Category','Thickness','Dimension','Color','Initial Stock'].map((label) => { const key = { SKU: 'sku', Material: 'material', Category: 'category', Thickness: 'thickness', Dimension: 'dimension', Color: 'color', 'Initial Stock': 'initialStock' }[label]; return <div key={label}><span>{label}</span><strong>{product?.[key] ?? '—'}</strong></div>; })}
                 </div>
               </div>
               <div className="reference-item-total"><span>Item Total</span><strong>{money(itemTotal)}</strong></div>

@@ -13,6 +13,8 @@ const PRODUCT_FIELDS = `
   specification,
   unit,
   standard_price AS "standardPrice",
+  standard_purchase_price AS "standardPurchasePrice",
+  initial_stock AS "initialStock",
   description,
   image_url AS "imageUrl",
   status,
@@ -59,8 +61,8 @@ export async function createProduct(pool, product) {
   const result = await pool.query(
     `INSERT INTO products (
       sku, name, category, material, thickness, length_cm, width_cm, height_cm, dimension, color,
-      specification, unit, standard_price, description, image_url, status
-    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
+      specification, unit, standard_price, standard_purchase_price, initial_stock, description, image_url, status
+    ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
     RETURNING ${PRODUCT_FIELDS}`,
     [
       product.sku,
@@ -76,6 +78,8 @@ export async function createProduct(pool, product) {
       product.specification,
       product.unit,
       product.standardPrice,
+      product.standardPurchasePrice,
+      product.initialStock,
       product.description,
       product.imageUrl,
       product.status,
@@ -103,6 +107,8 @@ export async function updateProduct(pool, id, product) {
     specification: 'specification',
     unit: 'unit',
     standardPrice: 'standard_price',
+    standardPurchasePrice: 'standard_purchase_price',
+    initialStock: 'initial_stock',
     description: 'description',
     imageUrl: 'image_url',
     status: 'status',

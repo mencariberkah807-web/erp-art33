@@ -64,7 +64,7 @@ export default function LoginPage({ onLogin, onForgotPassword }) {
           </button>
         </form>
 
-        <button className="auth-forgot" type="button" onClick={onForgotPassword}>
+        <button className="auth-forgot" type="button" onClick={onClick={() => window.location.assign('/forgot-password')}>
           Lupa Password?
         </button>
 

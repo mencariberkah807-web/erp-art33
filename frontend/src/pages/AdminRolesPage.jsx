@@ -4,6 +4,53 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const MODULES = ['CUSTOMER','PRODUCT','SALES_ORDER','PAYMENT','WORK_ORDER','PRODUCTION','PACKING','HANDOVER','FINANCE'];
 const ACTIONS = ['VIEW','CREATE','EDIT','DELETE','ACTION'];
 
+function AddRoleModal({ saving, error, onClose, onSubmit }) {
+
+  function submit(event) {
+    event.preventDefault();
+    onSubmit(form);
+  }
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card admin-user-modal">
+        <div className="modal-header">
+          <div><p className="eyebrow">ADMIN / USER MANAGEMENT</p><h2>Add Role</h2></div>
+          <button className="button" type="button" disabled={saving} onClick={onClose}>Close</button>
+        </div>
+        <form className="entity-form" onSubmit={submit}>
+          <label>
+            Role Code
+            <input
+              value={form.code}
+              onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))}
+              placeholder="e.g. SALES_ADMIN"
+              autoComplete="off"
+              autoFocus
+              required
+            />
+          </label>
+          <label>
+            Role Name
+            <input
+              value={form.name}
+              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              placeholder="e.g. Sales Admin"
+              autoComplete="off"
+              required
+            />
+          </label>
+          {error && <div className="form-error">{error}</div>}
+          <div className="modal-actions">
+            <button className="secondary-button" type="button" disabled={saving} onClick={onClose}>Cancel</button>
+            <button className="primary-button" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Role'}</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminRolesPage() {
   const [roles, setRoles] = useState([]);
   const [permissions, setPermissions] = useState([]);
@@ -83,12 +130,10 @@ export default function AdminRolesPage() {
   }
 
   function openCreate() {
-    setForm({ code: '', name: '' });
     setModal('create');
   }
 
-  async function submitRole(event) {
-    event.preventDefault();
+  async function submitRole(form) {
     setSaving(true);
     setError('');
     try {
@@ -214,20 +259,12 @@ export default function AdminRolesPage() {
       </div>
 
       {modal === 'create' && (
-        <div className="modal-backdrop">
-          <div className="modal-card admin-user-modal">
-            <div className="modal-header">
-              <div><p className="eyebrow">ADMIN / USER MANAGEMENT</p><h2>Add Role</h2></div>
-              <button className="button" type="button" disabled={saving} onClick={() => setModal(null)}>Close</button>
-            </div>
-            <form className="entity-form" onSubmit={submitRole}>
-              <label>Role Code<input value={form.code} onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))} placeholder="e.g. SALES_ADMIN" required /></label>
-              <label>Role Name<input value={form.name} onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))} placeholder="e.g. Sales Admin" required /></label>
-              {error && <div className="form-error">{error}</div>}
-              <div className="modal-actions"><button className="secondary-button" type="button" disabled={saving} onClick={() => setModal(null)}>Cancel</button><button className="primary-button" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save Role'}</button></div>
-            </form>
-          </div>
-        </div>
+        <AddRoleModal
+          saving={saving}
+          error={error}
+          onClose={() => setModal(null)}
+          onSubmit={submitRole}
+        />
       )}
     </section>
   );

@@ -8,7 +8,8 @@
     "start": "node src/server.js",
     "migrate": "node scripts/migrate.mjs",
     "build": "npm run migrate",
-    "test": "node --test"
+    "test": "node --test",
+    "create-admin": "node scripts/create-admin.mjs"
   },
   "dependencies": {
     "cors": "^2.8.5",

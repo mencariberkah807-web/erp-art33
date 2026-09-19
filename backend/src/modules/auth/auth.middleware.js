@@ -38,3 +38,20 @@ export async function requireAuth(request, response, next) {
     next(error);
   }
 }
+
+
+export function requireOwner(request, response, next) {
+  const isOwner = (request.user?.roles || []).some((role) => role.code === 'OWNER');
+
+  if (!isOwner) {
+    return response.status(403).json({
+      error: {
+        code: 'FORBIDDEN',
+        message: 'Owner access required.',
+        details: {},
+      },
+    });
+  }
+
+  next();
+}

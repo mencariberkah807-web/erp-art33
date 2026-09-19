@@ -12,6 +12,7 @@ import WorkOrderDetailPage from './pages/WorkOrderDetailPage.jsx';
 import PackingPage from './pages/PackingPage.jsx';
 import HandoverPage from './pages/HandoverPage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
+import AdminUsersPage from './pages/AdminUsersPage.jsx';
 import './styles.css';
 import './admin-friendly.css';
 import './status-badges.css';
@@ -100,6 +101,26 @@ function FutureEnginePage({ label }) {
         </div>
       </div>
     </section>
+  );
+}
+
+function AdminApp() {
+  return (
+    <div className="admin-shell">
+      <header className="admin-topbar">
+        <div><strong>ARTKRILIK ERP</strong><span>System Administration</span></div>
+        <a className="button" href="/">Back to ERP</a>
+      </header>
+      <div className="admin-layout">
+        <aside className="admin-sidebar">
+          <p className="admin-nav-label">ADMIN</p>
+          <a className="admin-nav-item" href="/erp-artkrilik/admin">Dashboard</a>
+          <div className="admin-nav-group"><strong>User Management</strong><a className="admin-nav-item active" href="/erp-artkrilik/admin/users">Users</a><a className="admin-nav-item disabled" href="#roles">Roles</a><a className="admin-nav-item disabled" href="#permissions">Permissions</a></div>
+          <div className="admin-nav-group"><strong>Access Control</strong><a className="admin-nav-item disabled" href="#role-access">Role Access</a><a className="admin-nav-item disabled" href="#module-access">Module Access</a><a className="admin-nav-item disabled" href="#action-permissions">Action Permissions</a></div>
+        </aside>
+        <main className="admin-content"><AdminUsersPage /></main>
+      </div>
+    </div>
   );
 }
 

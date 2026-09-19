@@ -12,6 +12,7 @@ import packingRoutes from './modules/packing/packing.routes.js';
 import handoverRoutes from './modules/handovers/handover.routes.js';
 import dashboardRoutes from './modules/dashboard/dashboard.routes.js';
 import authRoutes from './modules/auth/auth.routes.js';
+import adminRoutes from './modules/admin/admin.routes.js';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get('/health', async (_request, response) => {
 });
 
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/dashboard', dashboardRoutes);
 app.use('/api/v1/customers', customerRoutes);
 app.use('/api/v1/products', productRoutes);

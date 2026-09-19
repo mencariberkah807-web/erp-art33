@@ -13,6 +13,9 @@ import PackingPage from './pages/PackingPage.jsx';
 import HandoverPage from './pages/HandoverPage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
+import LoginPage from './pages/LoginPage.jsx';
+import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
+import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
 import './styles.css';
 import './admin-friendly.css';
 import './status-badges.css';
@@ -104,12 +107,12 @@ function FutureEnginePage({ label }) {
   );
 }
 
-function AdminApp() {
+function AdminApp({ user, onLogout }) {
   return (
     <div className="admin-shell">
       <header className="admin-topbar">
         <div><strong>ARTKRILIK ERP</strong><span>System Administration</span></div>
-        <a className="button" href="/">Back to ERP</a>
+        <div className="admin-topbar-actions"><span className="admin-user-name">{user?.name || user?.username}</span><button className="button" type="button" onClick={onLogout}>Logout</button></div>
       </header>
       <div className="admin-layout">
         <aside className="admin-sidebar">
@@ -124,7 +127,70 @@ function AdminApp() {
   );
 }
 
-function App() {
+function AuthGate() {
+  const [state, setState] = useState({ status: 'checking', user: null });
+
+  async function checkSession() {
+    setState((current) => ({ ...current, status: 'checking' }));
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/me`, { credentials: 'include' });
+      if (!response.ok) {
+        setState({ status: 'anonymous', user: null });
+        return;
+      }
+      const payload = await response.json();
+      setState({ status: 'authenticated', user: payload.user });
+    } catch {
+      setState({ status: 'anonymous', user: null });
+    }
+  }
+
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/reset-password') {
+      setState({ status: 'public', user: null });
+      return;
+    }
+    if (path === '/forgot-password') {
+      setState({ status: 'public', user: null });
+      return;
+    }
+    checkSession();
+  }, []);
+
+  function handleLogout() {
+    fetch(`${API_BASE_URL}/api/v1/auth/logout`, {
+      method: 'POST',
+      credentials: 'include',
+    }).finally(() => {
+      setState({ status: 'anonymous', user: null });
+      window.history.replaceState({}, '', '/');
+    });
+  }
+
+  const path = window.location.pathname;
+
+  if (path === '/reset-password') {
+    const token = new URLSearchParams(window.location.search).get('token') || '';
+    return <ResetPasswordPage token={token} onComplete={() => { window.history.replaceState({}, '', '/'); setState({ status: 'anonymous', user: null }); }} />;
+  }
+
+  if (path === '/forgot-password') {
+    return <ForgotPasswordPage onBack={() => window.history.replaceState({}, '', '/')} />;
+  }
+
+  if (state.status === 'checking') {
+    return <main className="auth-page"><section className="auth-card auth-loading"><strong>Checking session…</strong></section></main>;
+  }
+
+  if (state.status === 'anonymous') {
+    return <LoginPage onLogin={(user) => setState({ status: 'authenticated', user })} onForgotPassword={() => window.history.replaceState({}, '', '/forgot-password')} />;
+  }
+
+  return <App user={state.user} onLogout={handleLogout} />;
+}
+
+function App({ user, onLogout }) {
   const [activePage, setActivePage] = useState('Dashboard');
   const [apiState, setApiState] = useState('checking');
   const [salesView, setSalesView] = useState('list');
@@ -329,8 +395,9 @@ function App() {
           <div className="topbar-actions">
             <button className="icon-button" type="button" aria-label="Notifications">●</button>
             <div className="user-chip">
-              <span className="avatar">A</span>
-              <span>Admin</span>
+              <span className="avatar">{(user?.name || user?.username || 'A').charAt(0).toUpperCase()}</span>
+              <span>{user?.name || user?.username}</span>
+              <button className="topbar-logout" type="button" onClick={onLogout}>Logout</button>
             </div>
           </div>
         </header>
@@ -372,6 +439,6 @@ function App() {
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <AuthGate />
   </React.StrictMode>
 );

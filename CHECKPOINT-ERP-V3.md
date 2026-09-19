@@ -1,6 +1,6 @@
 # ARTKRILIK ERP V3 — CURRENT CHECKPOINT
 
-**Date:** 2026-09-16
+**Date:** 2026-09-19
 **Repository:** `mencariberkah807-web/erp-art33`
 **Purpose:** Working SSOT checkpoint for the current implemented vertical slice.
 
@@ -225,16 +225,39 @@ Do not refactor unrelated working code.
 
 Do not change locked business behavior without explicit approval.
 
-## 12. NEXT IMPLEMENTATION ORDER
 
-```text
-09 RTS / Handover
-10 Packing / Delivery
-11 Full End-to-End
-12 Marketplace vertical slice
-13 Edge / Regression
-14 UI/UX polish
-15 Final validation
-```
+## 12. AUTHENTICATION FOUNDATION — IMPLEMENTED
 
-The next scope should begin with the smallest required dependency scan for RTS/Handover, not a restart of the entire project.
+Authentication has been added using a simple server-side PostgreSQL session model.
+
+Implemented:
+- POST /api/v1/auth/login
+- GET /api/v1/auth/me
+- POST /api/v1/auth/logout
+- PostgreSQL auth_sessions table via migration 018_auth_sessions.sql.
+- Session token is stored hashed with SHA-256.
+- Password verification uses Node crypto.scrypt.
+- Inactive users are rejected.
+- backend/scripts/create-admin.mjs creates an ACTIVE Admin user and assigns the ADMIN role.
+- CORS credentials support is enabled.
+- Dashboard API has been protected with requireAuth.
+
+Current validation status:
+- GitHub changes pulled successfully into Codespace at commit 502c145.
+- .env exists and contains DATABASE_URL.
+- Explicit dotenv loading confirms DATABASE_URL is available.
+- npm run migrate currently stops because scripts/migrate.mjs reads process.env.DATABASE_URL before loading dotenv.
+- No further auth validation has been performed yet.
+
+## 13. AUTHORIZATION — NOT YET IMPLEMENTED
+
+The remaining ERP route modules are not yet fully protected by requireAuth.
+Role/permission enforcement is also not yet implemented.
+
+Do not claim authentication or authorization validation is complete until the local migration, admin creation, login, /me, logout, and protected-route tests pass.
+
+## 14. CURRENT NEXT ACTION
+
+Fix only the migration environment loading issue in backend/scripts/migrate.mjs, then run migration and validate authentication locally.
+
+Do not redesign authentication and do not introduce JWT.

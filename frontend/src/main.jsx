@@ -187,6 +187,24 @@ function AuthGate() {
     return <LoginPage onLogin={(user) => setState({ status: 'authenticated', user })} onForgotPassword={() => window.history.replaceState({}, '', '/forgot-password')} />;
   }
 
+  if (path === '/erp-artkrilik/admin' || path === '/erp-artkrilik/admin/' || path === '/erp-artkrilik/admin/users') {
+    const isOwner = (state.user?.roles || []).some((role) => role.code === 'OWNER');
+    if (!isOwner) {
+      return (
+        <main className="auth-page">
+          <section className="auth-card">
+            <div className="auth-heading">
+              <p className="eyebrow">ACCESS CONTROL</p>
+              <h1>Access Denied</h1>
+              <p>Halaman System Administration hanya dapat diakses oleh Owner.</p>
+            </div>
+            <button className="primary-button auth-submit" type="button" onClick={() => window.location.assign('/')}>Kembali ke ERP</button>
+          </section>
+        </main>
+      );
+    }
+  }
+
   return <App user={state.user} onLogout={handleLogout} />;
 }
 
@@ -294,6 +312,10 @@ function App({ user, onLogout }) {
     if (item.key === 'packing') return isPacking;
     if (item.key === 'delivery') return isHandover;
     return futurePage === item.label;
+  }
+
+  if (window.location.pathname === '/erp-artkrilik/admin' || window.location.pathname === '/erp-artkrilik/admin/' || window.location.pathname === '/erp-artkrilik/admin/users') {
+    return <AdminApp user={user} onLogout={onLogout} />;
   }
 
   return (

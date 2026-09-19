@@ -13,6 +13,7 @@ import PackingPage from './pages/PackingPage.jsx';
 import HandoverPage from './pages/HandoverPage.jsx';
 import PaymentsPage from './pages/PaymentsPage.jsx';
 import AdminUsersPage from './pages/AdminUsersPage.jsx';
+import AdminRolesPage from './pages/AdminRolesPage.jsx';
 import LoginPage from './pages/LoginPage.jsx';
 import ForgotPasswordPage from './pages/ForgotPasswordPage.jsx';
 import ResetPasswordPage from './pages/ResetPasswordPage.jsx';
@@ -107,7 +108,7 @@ function FutureEnginePage({ label }) {
   );
 }
 
-function AdminApp({ user, onLogout }) {
+function AdminApp({ user, onLogout, page = 'users' }) {
   return (
     <div className="admin-shell">
       <header className="admin-topbar">
@@ -118,10 +119,10 @@ function AdminApp({ user, onLogout }) {
         <aside className="admin-sidebar">
           <p className="admin-nav-label">ADMIN</p>
           <a className="admin-nav-item" href="/erp-artkrilik/admin">Dashboard</a>
-          <div className="admin-nav-group"><strong>User Management</strong><a className="admin-nav-item active" href="/erp-artkrilik/admin/users">Users</a><a className="admin-nav-item disabled" href="#roles">Roles</a><a className="admin-nav-item disabled" href="#permissions">Permissions</a></div>
+          <div className="admin-nav-group"><strong>User Management</strong><a className={`admin-nav-item ${page === 'users' ? 'active' : ''}`} href="/erp-artkrilik/admin/users">Users</a><a className={`admin-nav-item ${page === 'roles' ? 'active' : ''}`} href="/erp-artkrilik/admin/roles">Roles</a><a className="admin-nav-item disabled" href="#permissions">Permissions</a></div>
           <div className="admin-nav-group"><strong>Access Control</strong><a className="admin-nav-item disabled" href="#role-access">Role Access</a><a className="admin-nav-item disabled" href="#module-access">Module Access</a><a className="admin-nav-item disabled" href="#action-permissions">Action Permissions</a></div>
         </aside>
-        <main className="admin-content"><AdminUsersPage /></main>
+        <main className="admin-content">{page === 'roles' ? <AdminRolesPage /> : <AdminUsersPage />}</main>
       </div>
     </div>
   );
@@ -187,7 +188,7 @@ function AuthGate() {
     return <LoginPage onLogin={(user) => setState({ status: 'authenticated', user })} onForgotPassword={() => window.history.replaceState({}, '', '/forgot-password')} />;
   }
 
-  if (path === '/erp-artkrilik/admin' || path === '/erp-artkrilik/admin/' || path === '/erp-artkrilik/admin/users') {
+  if (path === '/erp-artkrilik/admin' || path === '/erp-artkrilik/admin/' || path === '/erp-artkrilik/admin/users' || path === '/erp-artkrilik/admin/roles') {
     const isOwner = (state.user?.roles || []).some((role) => role.code === 'OWNER');
     if (!isOwner) {
       return (
@@ -314,8 +315,9 @@ function App({ user, onLogout }) {
     return futurePage === item.label;
   }
 
-  if (window.location.pathname === '/erp-artkrilik/admin' || window.location.pathname === '/erp-artkrilik/admin/' || window.location.pathname === '/erp-artkrilik/admin/users') {
-    return <AdminApp user={user} onLogout={onLogout} />;
+  if (window.location.pathname === '/erp-artkrilik/admin' || window.location.pathname === '/erp-artkrilik/admin/' || window.location.pathname === '/erp-artkrilik/admin/users' || window.location.pathname === '/erp-artkrilik/admin/roles') {
+    const page = window.location.pathname === '/erp-artkrilik/admin/roles' ? 'roles' : 'users';
+    return <AdminApp user={user} onLogout={onLogout} page={page} />;
   }
 
   return (

@@ -1,15 +1,19 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const MODULES = ['CUSTOMER','PRODUCT','SALES_ORDER','PAYMENT','WORK_ORDER','PRODUCTION','PACKING','HANDOVER','FINANCE'];
 const ACTIONS = ['VIEW','CREATE','EDIT','DELETE','ACTION'];
 
 function AddRoleModal({ saving, error, onClose, onSubmit }) {
-  const [form, setForm] = useState({ code: '', name: '' });
+  const formRef = useRef(null);
 
   function submit(event) {
     event.preventDefault();
-    onSubmit(form);
+    const formData = new FormData(formRef.current);
+    onSubmit({
+      code: String(formData.get('code') || ''),
+      name: String(formData.get('name') || ''),
+    });
   }
 
   return (
@@ -19,12 +23,12 @@ function AddRoleModal({ saving, error, onClose, onSubmit }) {
           <div><p className="eyebrow">ADMIN / USER MANAGEMENT</p><h2>Add Role</h2></div>
           <button className="button" type="button" disabled={saving} onClick={onClose}>Close</button>
         </div>
-        <form className="entity-form" onSubmit={submit}>
+        <form ref={formRef} className="entity-form" onSubmit={submit}>
           <label>
             Role Code
             <input
-              value={form.code}
-              onChange={(event) => setForm((current) => ({ ...current, code: event.target.value }))}
+              name="code"
+              defaultValue=""
               placeholder="e.g. SALES_ADMIN"
               autoComplete="off"
               autoFocus
@@ -34,8 +38,8 @@ function AddRoleModal({ saving, error, onClose, onSubmit }) {
           <label>
             Role Name
             <input
-              value={form.name}
-              onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+              name="name"
+              defaultValue=""
               placeholder="e.g. Sales Admin"
               autoComplete="off"
               required
@@ -61,7 +65,6 @@ export default function AdminRolesPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [modal, setModal] = useState(null);
-  const [form, setForm] = useState({ code: '', name: '' });
 
   const load = useCallback(async () => {
     setLoading(true);

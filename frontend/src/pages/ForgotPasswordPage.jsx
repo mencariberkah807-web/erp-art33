@@ -60,7 +60,7 @@ export default function ForgotPasswordPage({ onBack }) {
           </form>
         )}
 
-        <button className="auth-forgot" type="button" onClick={onBack}>
+        <button className="auth-forgot" type="button" onClick={() => window.location.assign('/')}>
           ← Kembali ke Login
         </button>
       </section>

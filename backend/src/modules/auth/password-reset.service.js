@@ -88,6 +88,10 @@ export async function resetPassword(tokenInput, newPassword) {
   const token = typeof tokenInput === 'string' ? tokenInput.trim() : '';
   if (!token) throw validation('Reset token is required.');
 
+  if (typeof newPassword !== 'string' || newPassword.length < 8) {
+    throw validation('Password must be at least 8 characters.');
+  }
+
   const passwordHash = hashPassword(newPassword);
 
   const db = getPool();

@@ -5,6 +5,7 @@ const MODULES = ['CUSTOMER','PRODUCT','SALES_ORDER','PAYMENT','WORK_ORDER','PROD
 const ACTIONS = ['VIEW','CREATE','EDIT','DELETE','ACTION'];
 
 function AddRoleModal({ saving, error, onClose, onSubmit }) {
+  const [form, setForm] = useState({ code: '', name: '' });
 
   function submit(event) {
     event.preventDefault();

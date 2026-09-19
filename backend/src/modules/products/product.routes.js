@@ -1,7 +1,10 @@
 import { Router } from 'express';
 import { create, getById, list, update } from './product.controller.js';
+import { requireAuth } from '../auth/auth.middleware.js';
 
 const router = Router();
+
+router.use(requireAuth);
 
 router.get('/', list);
 router.get('/:id', getById);

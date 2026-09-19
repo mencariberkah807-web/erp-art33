@@ -1,10 +1,10 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/backend';
 const MODULES = ['CUSTOMER','PRODUCT','SALES_ORDER','PAYMENT','WORK_ORDER','PRODUCTION','PACKING','HANDOVER','FINANCE'];
 const ACTIONS = ['VIEW','CREATE','EDIT','DELETE','ACTION'];
 
-function AddRoleModal({ saving, error, onClose, onSubmit }) {
+const AddRoleModal = memo(function AddRoleModal({ saving, error, onClose, onSubmit }) {
   const formRef = useRef(null);
 
   function submit(event) {
@@ -54,7 +54,7 @@ function AddRoleModal({ saving, error, onClose, onSubmit }) {
       </div>
     </div>
   );
-}
+});
 
 export default function AdminRolesPage() {
   const [roles, setRoles] = useState([]);
@@ -84,7 +84,7 @@ export default function AdminRolesPage() {
 
   useEffect(() => { load(); }, [load]);
 
-  async function openRole(role) {
+  const openRole = useCallback(async (role) => {
     setError('');
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/admin/roles/${role.id}`, { credentials: 'include' });
@@ -95,7 +95,7 @@ export default function AdminRolesPage() {
     } catch (requestError) {
       setError(requestError.message);
     }
-  }
+  }, []);
 
   function hasPermission(code) {
     const permission = permissions.find((item) => item.code === code);
@@ -133,11 +133,12 @@ export default function AdminRolesPage() {
     }
   }
 
-  function openCreate() {
+  const openCreate = useCallback(() => {
+    setError('');
     setModal('create');
-  }
+  }, []);
 
-  async function submitRole(form) {
+  const submitRole = useCallback(async (form) => {
     setSaving(true);
     setError('');
     try {
@@ -157,7 +158,7 @@ export default function AdminRolesPage() {
     } finally {
       setSaving(false);
     }
-  }
+  }, [load, openRole]);
 
   async function toggleStatus(role) {
     if (role.code === 'OWNER') return;

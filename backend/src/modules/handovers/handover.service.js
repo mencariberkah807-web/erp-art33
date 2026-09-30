@@ -14,6 +14,11 @@ export async function createHandover(pool, salesOrderId, data = {}) {
   const handoverType = String(data.handoverType || '').trim().toUpperCase();
   if (!['CUSTOMER_PICKUP', 'COURIER'].includes(handoverType)) throw error('VALIDATION_ERROR', 'Handover type must be CUSTOMER_PICKUP or COURIER.');
 
+  const recipientName = String(data.recipientName || '').trim();
+  const courierName = String(data.courierName || '').trim();
+  if (handoverType === 'CUSTOMER_PICKUP' && !recipientName) throw error('VALIDATION_ERROR', 'Recipient name is required for CUSTOMER_PICKUP.');
+  if (handoverType === 'COURIER' && !courierName) throw error('VALIDATION_ERROR', 'Courier name is required for COURIER.');
+
   const db = await pool.connect();
   try {
     await db.query('BEGIN');
@@ -28,11 +33,10 @@ export async function createHandover(pool, salesOrderId, data = {}) {
     const existing = await db.query(`SELECT id FROM handovers WHERE sales_order_id = $1 LIMIT 1`, [salesOrderId]);
     if (existing.rows[0]) throw error('CONFLICT', 'Sales order already has a handover record.');
 
-    const recipientName = handoverType === 'CUSTOMER_PICKUP' ? order.customerName : null;
-    const result = await repository.createHandover(db, { salesOrderId, handoverType, recipientName, courierName: null, handoverAt: data.handoverAt, handedOverBy: data.handedOverBy, notes: data.notes });
+    const result = await repository.createHandover(db, { salesOrderId, handoverType, recipientName: handoverType === 'CUSTOMER_PICKUP' ? recipientName : null, courierName: handoverType === 'COURIER' ? courierName : null, handoverAt: data.handoverAt, handedOverBy: data.handedOverBy, notes: data.notes });
     if (!result) throw error('VALIDATION_ERROR', 'Handover creation failed.');
 
-    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrderId, action: AUDIT.HANDOVER_RECORDED, newData: { salesOrderId, soNumber: order.soNumber, handoverId: result.id, handoverType, recipientName, completed: false } });
+    await audit.recordAudit(db, { entityType: 'SALES_ORDER', entityId: salesOrderId, action: AUDIT.HANDOVER_RECORDED, newData: { salesOrderId, soNumber: order.soNumber, handoverId: result.id, handoverType, recipientName: handoverType === 'CUSTOMER_PICKUP' ? recipientName : null, courierName: handoverType === 'COURIER' ? courierName : null, completed: false } });
     await db.query('COMMIT');
     return { ...result, salesOrder: { id: order.id, soNumber: order.soNumber, status: order.status, customerName: order.customerName } };
   } catch (e) { await db.query('ROLLBACK'); throw e; }

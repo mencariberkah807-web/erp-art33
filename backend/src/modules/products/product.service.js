@@ -15,72 +15,59 @@ function validateProduct(input, { partial = false } = {}) {
     product.sku = normalizeText(input.sku);
     if (!product.sku) throw validationError('SKU is required.');
   }
-
   if (!partial || input.name !== undefined) {
     product.name = normalizeText(input.name);
     if (!product.name) throw validationError('Product name is required.');
   }
-
   if (!partial || input.unit !== undefined) {
     product.unit = normalizeText(input.unit);
     if (!product.unit) throw validationError('Unit is required.');
   }
-
   if (!partial || input.standardPrice !== undefined) {
     const value = Number(input.standardPrice ?? 0);
-    if (!Number.isFinite(value) || value < 0) {
-      throw validationError('Standard price must be a number greater than or equal to 0.');
-    }
+    if (!Number.isFinite(value) || value < 0) throw validationError('Standard price must be a number greater than or equal to 0.');
     product.standardPrice = value;
   }
-
   if (!partial || input.standardPurchasePrice !== undefined) {
     const value = Number(input.standardPurchasePrice ?? 0);
-    if (!Number.isFinite(value) || value < 0) {
-      throw validationError('Standard purchase price must be a number greater than or equal to 0.');
-    }
+    if (!Number.isFinite(value) || value < 0) throw validationError('Standard purchase price must be a number greater than or equal to 0.');
     product.standardPurchasePrice = value;
   }
-
   if (!partial || input.initialStock !== undefined) {
     const value = Number(input.initialStock ?? 0);
-    if (!Number.isFinite(value) || value < 0) {
-      throw validationError('Initial stock must be a number greater than or equal to 0.');
-    }
+    if (!Number.isFinite(value) || value < 0) throw validationError('Initial stock must be a number greater than or equal to 0.');
     product.initialStock = value;
   }
-
   if (input.status !== undefined) {
     product.status = String(input.status).trim().toUpperCase();
-    if (!ALLOWED_STATUS.has(product.status)) {
-      throw validationError('Status must be ACTIVE or INACTIVE.');
-    }
+    if (!ALLOWED_STATUS.has(product.status)) throw validationError('Status must be ACTIVE or INACTIVE.');
   } else if (!partial) {
     product.status = 'ACTIVE';
   }
-
-  for (const key of ['category', 'material', 'thickness', 'color', 'specification', 'description', 'imageUrl']) {
+  if (input.publishToWebsite !== undefined) {
+    if (typeof input.publishToWebsite !== 'boolean') throw validationError('Publish to Website must be true or false.');
+    product.publishToWebsite = input.publishToWebsite;
+  } else if (!partial) {
+    product.publishToWebsite = false;
+  }
+  for (const key of ['category', 'material', 'thickness', 'color', 'specification', 'description', 'imageUrl', 'metaSeoKeywords']) {
     if (input[key] !== undefined) product[key] = normalizeText(input[key]);
   }
-
   for (const key of ['lengthCm', 'widthCm', 'heightCm']) {
     if (input[key] !== undefined) {
-      if (input[key] === null || input[key] === '') {
-        product[key] = null;
-      } else {
+      if (input[key] === null || input[key] === '') product[key] = null;
+      else {
         const value = Number(input[key]);
-        if (!Number.isFinite(value) || value < 0) throw validationError(`${key} must be a number greater than or equal to 0.`);
+        if (!Number.isFinite(value) || value < 0) throw validationError(key + ' must be a number greater than or equal to 0.');
         product[key] = value;
       }
     }
   }
-
   return product;
 }
 
 function syncLegacyDimension(product) {
-  const values = [product.lengthCm, product.widthCm, product.heightCm]
-    .filter((value) => value !== undefined && value !== null && value !== '');
+  const values = [product.lengthCm, product.widthCm, product.heightCm].filter((value) => value !== undefined && value !== null && value !== '');
   product.dimension = values.length ? values.join(' × ') + ' cm' : null;
 }
 
@@ -93,31 +80,19 @@ export async function listProducts(pool, query) {
   const pageSize = Math.min(Math.max(Number.parseInt(query.pageSize, 10) || 20, 1), 100);
   const search = normalizeText(query.search);
   const status = query.status ? String(query.status).trim().toUpperCase() : undefined;
-
   if (status && !ALLOWED_STATUS.has(status)) throw validationError('Status must be ACTIVE or INACTIVE.');
-
   const result = await repository.listProducts(pool, { page, pageSize, search, status });
-  return {
-    data: result.rows,
-    meta: { page, pageSize, total: result.total },
-  };
+  return { data: result.rows, meta: { page, pageSize, total: result.total } };
 }
 
-export async function getProduct(pool, id) {
-  return repository.findProductById(pool, id);
-}
+export async function getProduct(pool, id) { return repository.findProductById(pool, id); }
 
 export async function createProduct(pool, input) {
   const product = validateProduct(input);
   syncLegacyDimension(product);
-  try {
-    return await repository.createProduct(pool, product);
-  } catch (error) {
-    if (error.code === '23505') {
-      const conflict = new Error('A product with this SKU already exists.');
-      conflict.code = 'CONFLICT';
-      throw conflict;
-    }
+  try { return await repository.createProduct(pool, product); }
+  catch (error) {
+    if (error.code === '23505') { const conflict = new Error('A product with this SKU already exists.'); conflict.code = 'CONFLICT'; throw conflict; }
     throw error;
   }
 }
@@ -125,14 +100,9 @@ export async function createProduct(pool, input) {
 export async function updateProduct(pool, id, input) {
   const product = validateProduct(input, { partial: true });
   if (['lengthCm', 'widthCm', 'heightCm'].some((key) => input[key] !== undefined)) syncLegacyDimension(product);
-  try {
-    return await repository.updateProduct(pool, id, product);
-  } catch (error) {
-    if (error.code === '23505') {
-      const conflict = new Error('A product with this SKU already exists.');
-      conflict.code = 'CONFLICT';
-      throw conflict;
-    }
+  try { return await repository.updateProduct(pool, id, product); }
+  catch (error) {
+    if (error.code === '23505') { const conflict = new Error('A product with this SKU already exists.'); conflict.code = 'CONFLICT'; throw conflict; }
     throw error;
   }
 }

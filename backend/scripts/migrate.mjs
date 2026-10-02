@@ -1,10 +1,12 @@
 import { readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import pg from 'pg';
+import dotenv from 'dotenv';
 
 const { Client } = pg;
 const ROOT = path.resolve(import.meta.dirname, '../..');
 const MIGRATIONS_DIR = path.join(ROOT, 'database', 'migrations');
+dotenv.config({ path: path.resolve(import.meta.dirname, '../.env') });
 const DATABASE_URL = process.env.DATABASE_URL;
 
 if (!DATABASE_URL) {

@@ -7,10 +7,10 @@ import { hashPassword } from '../src/modules/auth/auth.service.js';
 const rl = readline.createInterface({ input, output });
 
 try {
-  const username = (await rl.question('Admin username: ')).trim();
-  const email = (await rl.question('Admin email: ')).trim();
-  const name = (await rl.question('Admin name: ')).trim();
-  const password = await rl.question('Admin password (min 8 chars): ');
+  const username = (await rl.question('Owner username: ')).trim();
+  const email = (await rl.question('Owner email: ')).trim();
+  const name = (await rl.question('Owner name: ')).trim();
+  const password = await rl.question('Owner password (min 8 chars): ');
 
   if (!username || !name || !password) {
     throw new Error('Username, name, and password are required.');
@@ -31,11 +31,11 @@ try {
     );
 
     const roleResult = await client.query(
-      `SELECT id FROM roles WHERE code = 'ADMIN' LIMIT 1`,
+      `SELECT id FROM roles WHERE code = 'OWNER' AND status = 'ACTIVE' LIMIT 1`,
     );
 
     if (!roleResult.rows[0]) {
-      throw new Error('ADMIN role is missing. Run database migrations first.');
+      throw new Error('OWNER role is missing or inactive. Run database migrations first.');
     }
 
     await client.query(
@@ -46,7 +46,7 @@ try {
     );
 
     await client.query('COMMIT');
-    console.log(`Admin created: ${userResult.rows[0].username}`);
+    console.log(`Owner account created: ${userResult.rows[0].username}`);
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
